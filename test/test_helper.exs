@@ -66,8 +66,8 @@ defmodule Helper do
     end
   end
 
-  def empty_interval() do
-    StreamData.constant(Interval.empty())
+  def empty_interval(zero) do
+    StreamData.constant(Interval.new(left: zero, right: zero, bounds: "()"))
   end
 
   def integer_interval(opts \\ []) do
@@ -79,7 +79,7 @@ defmodule Helper do
       [
         if(Keyword.get(opts, :bounded), do: bounded_interval(i, pi)),
         if(Keyword.get(opts, :unbounded), do: unbounded_interval(i)),
-        if(Keyword.get(opts, :empty), do: empty_interval())
+        if(Keyword.get(opts, :empty), do: empty_interval(0))
       ]
       |> Enum.reject(&is_nil/1)
     )
@@ -94,7 +94,7 @@ defmodule Helper do
       [
         if(Keyword.get(opts, :bounded), do: bounded_interval(f, pf)),
         if(Keyword.get(opts, :unbounded), do: unbounded_interval(f)),
-        if(Keyword.get(opts, :empty), do: empty_interval())
+        if(Keyword.get(opts, :empty), do: empty_interval(0.0))
       ]
       |> Enum.reject(&is_nil/1)
     )

@@ -24,7 +24,7 @@ defmodule Interval do
   The struct has two fields: `left` and `right`,
   representing the left (lower) and right (upper) points
   in the interval.
-  
+
   The endpoints are stored as an `t:Interval.Endpoint.t/0` or
   the atom `:unbounded`.  
 
@@ -34,16 +34,11 @@ defmodule Interval do
 
   """
   @type t() :: %__MODULE__{
+          # Left endpoint
           left: :empty | :unbounded | Interval.Endpoint.t(),
-          right: :empty | :unbounded | Interval.Endpoint.t()
+          # Right  endpoint
+          right: :empty | :unbounded | Interval.Endpoint.t(),
         }
-
-  @doc """
-  Create a new empty Interval
-  """
-  def empty() do
-    %__MODULE__{left: :empty, right: :empty}
-  end
 
   @doc """
   Create a new Interval containing a single point.
@@ -100,9 +95,16 @@ defmodule Interval do
   def normalize(%__MODULE__{left: :empty, right: :empty} = self), do: self
   # non-empty non-unbounded Interval:
   def normalize(%__MODULE__{left: %Endpoint{} = left, right: %Endpoint{} = right} = original) do
-    # Left and right point type must be the same.
-    # Dirty assert for now:
-    true = Interval.Point.impl_for!(left.point) == Interval.Point.impl_for!(right.point)
+    left_point_impl = Point.impl_for(left.point)
+    right_point_impl = Point.impl_for(right.point)
+
+    if left_point_impl != right_point_impl do
+      raise """
+      The Interval.Point implementation for the left and right side
+      of the interval must be identical, but got
+      left=#{left_point_impl},  right=#{right_point_impl}
+      """
+    end
 
     type = Point.type(left.point)
     comp = Point.compare(left.point, right.point)
@@ -112,20 +114,19 @@ defmodule Interval do
     case {type, comp, left_inclusive, right_inclusive} do
       # left > right is an error:
       {_, :gt, _, _} ->
-        dbg({left, right})
         raise "left > right which is invalid"
 
       # intervals given as either (p,p), [p,p) or (p,p]
       # are all normalized to empty.
       # (If you want a single point in an interval, give it as [p,p])
       {_, :eq, false, false} ->
-        empty()
+        into_empty(original)
 
       {_, :eq, true, false} ->
-        empty()
+        into_empty(original)
 
       {_, :eq, false, true} ->
-        empty()
+        into_empty(original)
 
       # otherwise, if the point type is continuous, the the orignal
       # interval was already normalized form:
@@ -143,13 +144,10 @@ defmodule Interval do
 
         case Point.compare(next_left_point, right.point) do
           :eq ->
-            empty()
+            into_empty(original)
 
           :lt ->
-            %__MODULE__{
-              left: Endpoint.inclusive(next_left_point),
-              right: right
-            }
+            %__MODULE__{original | left: Endpoint.inclusive(next_left_point)}
         end
 
       # Remaining bound combinations are:
@@ -161,14 +159,15 @@ defmodule Interval do
       # (a,b] -> [a+1, b+1)
       {:discrete, _, true, true} ->
         %__MODULE__{
-          left: left,
-          right: Endpoint.exclusive(Point.next(right.point))
+          original
+          | right: Endpoint.exclusive(Point.next(right.point))
         }
 
       {:discrete, _, false, true} ->
         %__MODULE__{
-          left: Endpoint.inclusive(Point.next(left.point)),
-          right: Endpoint.exclusive(Point.next(right.point))
+          original
+          | left: Endpoint.inclusive(Point.next(left.point)),
+            right: Endpoint.exclusive(Point.next(right.point))
         }
 
       # Finally, if we have an [) interval, then the original was
@@ -180,7 +179,11 @@ defmodule Interval do
 
   # Either left or right or both must be unbounded
   def normalize(%__MODULE__{left: left, right: right} = original) do
-    %{original | left: normalize_left_endpoint(left), right: normalize_right_endpoint(right)}
+    %{
+      original
+      | left: normalize_left_endpoint(left),
+        right: normalize_right_endpoint(right)
+    }
   end
 
   defp normalize_right_endpoint(:unbounded), do: :unbounded
@@ -202,11 +205,14 @@ defmodule Interval do
   end
 
   @doc """
-  Is interval empty?
+  Is the interval empty?
+
+  An empty interval is an interval that represents no points.
+  Any interval interval containing no points is considered empty.
 
   ## Examples
 
-      iex> empty?(empty())
+      iex> empty?(new(left: 0, right: 0))
       true
 
       iex> empty?(single(1.0))
@@ -220,7 +226,10 @@ defmodule Interval do
   def empty?(%__MODULE__{}), do: false
 
   @doc """
-  Is the interval unbounded to the left?
+  Check if the interval is left-unbounded.
+
+  The interval is left-unbounded if all points
+  left of the right bound is included in this interval.
 
   ## Examples
 
@@ -238,7 +247,10 @@ defmodule Interval do
   def left_unbounded?(%__MODULE__{}), do: false
 
   @doc """
-  Is the interval unbounded to the right?
+  Check if the interval is right-unbounded.
+
+  The interval is right-unbounded if all points
+  right of the left bound is included in this interval.
 
   ## Examples
 
@@ -256,7 +268,14 @@ defmodule Interval do
   def right_unbounded?(%__MODULE__{}), do: false
 
   @doc """
-  Is the interval left point inclusive?
+  Is the interval left-inclusive?
+
+  The interval is left-inclusive if the left endpoint
+  value is included in the interval.
+
+  NOTE: Discrete intervals (like integers and dates) are always normalized
+  to be left-inclusive right-exclusive (`[)`) which this function reflects.
+
 
       iex> left_inclusive?(new(left: 1.0, right: 2.0, bounds: "[]"))
       true
@@ -272,7 +291,14 @@ defmodule Interval do
   def left_inclusive?(%__MODULE__{}), do: false
 
   @doc """
-  Is the interval right point inclusive?
+  Is the interval right-inclusive?
+
+  The interval is right-inclusive if the right endpoint
+  value is included in the interval.
+
+  NOTE: Discrete intervals (like integers and dates) are always normalized
+  to be left-inclusive right-exclusive (`[)`) which this function reflects.
+
 
       iex> right_inclusive?(new(left: 1.0, right: 2.0, bounds: "[]"))
       true
@@ -288,13 +314,24 @@ defmodule Interval do
   def right_inclusive?(%__MODULE__{}), do: false
 
   @doc """
-  A is strictly left of B, if no point in A is in B,
-  and all points in A is left (<) of all points in B.
+  Is `a` strictly left of `b`.
 
-  # Examples:
+  `a` is strictly left of `b` if no point in `a` is in `b`,
+  and all points in `a` is left (<) of all points in `b`.
 
-      [--A--)
-               [--B--)
+  ## Examples
+
+      a: [---)
+      b:     [---)
+      r: true
+
+      a: [---)
+      b:        [---)
+      r: true
+
+      a: [---)
+      b:    [---)
+      r: false (overlaps)
 
       iex> strictly_left_of?(new(left: 1, right: 2), new(left: 3, right: 4))
       true
@@ -319,11 +356,24 @@ defmodule Interval do
   end
 
   @doc """
-  A is strictly right of B, if no point in A is in B,
-  and all points in A is right (>) of all points in B.
+  Is `a` strictly right of `b`.
 
-               [--A--)
-      [--B--)
+  `a` is strictly right of `b` if no point in `a` is in `b`,
+  and all points in `a` is right (>) of all points in `b`.
+
+  ## Examples
+
+      a:     [---)
+      b: [---)
+      r: true
+
+      a:        [---)
+      b: [---)
+      r: true
+
+      a:    [---)
+      b: [---)
+      r: false (overlaps)
 
       iex> strictly_right_of?(new(left: 1, right: 2), new(left: 3, right: 4))
       false
@@ -348,29 +398,25 @@ defmodule Interval do
   end
 
   @doc """
-  A is adjacent left of B if a.right.point == b.left.point and their bounds are not equal,
-  or if A's type is discrete and next(a.right.point) == b.left.point and a.right.point and b.left.point is inclusive
-    
-  Discrete:
+  Is the interval `a` adjacent to `b`, to the left of `b`.
 
-      |--A--)
-            [--B--|
+  `a` is adjacent to `b` left of `b`, if `a` and `b` do _not_ overlap,
+  and there are no points between `a.right` and `b.left`.
 
-      |--A--]
-            (--B--|
-      
-      |--A--]
-              [--B--|
+      a: [---)
+      b:     [---)
+      r: true
 
-  Continuous:
+      a: [---]
+      b:     [---]
+      r: false (overlaps)
 
-      |--A--)
-            [--B--|
-
-      |--A--]
-            (--B--|
+      a: (---)
+      b:        (---)
+      r: false (points exist between a.right and b.left)
 
   ## Examples
+
 
       iex> adjacent_left_of?(new(left: 1, right: 2), new(left: 2, right: 3))
       true
@@ -415,28 +461,22 @@ defmodule Interval do
   end
 
   @doc """
-  A is adjacent right of B if a.left.point == b.right.point and their bounds are not equal,
-  or if A's type is discrete and next(a.left.point) == b.right.point and a.left.point and b.right.point is inclusive
-    
-  Discrete:
+  Is the interval `a` adjacent to `b`, to the right of `b`.
 
-            (--A--]
-      |--B--]
+  `a` is adjacent to `b` right of `b`, if `a` and `b` do _not_ overlap,
+  and there are no points between `a.left` and `b.right`.
 
-            [--A--|
-      |--B--)
-      
-              [--A--|
-      |--B--]
+      a:     [---)
+      b: [---)
+      r: true
 
-  Continuous:
+      a:     [---)
+      b: [---]
+      r: false (overlaps)
 
-            (--A--]
-      |--B--]
-
-            [--A--|
-      |--B--)
-      
+      a:        (---)
+      b: (---)
+      r: false (points exist between a.left and b.right)
 
   ## Examples
 
@@ -483,40 +523,62 @@ defmodule Interval do
   end
 
   @doc """
-  Is some points in A also in B?
+  Does `a` overlap with `b`?
+
+  `a` overlaps with `b` if any point in `a` is also in `b`.
+
+      a: [---)
+      b:   [---)
+      r: true
+
+      a: [---)
+      b:     [---)
+      r: false
+
+      a: [---]
+      b:     [---]
+      r: true
+
+      a: (---)
+      b:     (---)
+      r: false
+
+      a: [---)
+      b:        [---)
+      r: false
 
   ## Examples
 
-      [--A--)
-          [--B--)
+      [--a--)
+          [--b--)
 
       iex> overlaps?(new(left: 1, right: 3), new(left: 2, right: 4))
       true
 
 
-      [--A--)
-            [--B--)
+      [--a--)
+            [--b--)
 
       iex> overlaps?(new(left: 1, right: 3), new(left: 3, right: 5))
       false
 
 
-      [--A--]
-            [--B--]
+      [--a--]
+            [--b--]
 
       iex> overlaps?(new(left: 1, right: 3), new(left: 2, right: 4))
       true
 
 
-      (--A--)
-            (--B--)
+      (--a--)
+            (--b--)
 
       iex> overlaps?(new(left: 1, right: 3), new(left: 3, right: 5))
       false
 
 
-      [--A--)
-               [--B--)
+      [--a--)
+               [--b--)
 
       iex> overlaps?(new(left: 1, right: 2), new(left: 3, right: 4))
       false
@@ -530,23 +592,43 @@ defmodule Interval do
   end
 
   @doc """
-  Does interval `a` contain `point`?
+  Does `a` contain `b`?
 
-  For an interval A to contain an interval B, all of B's points must be
-  inside of A:
+  `a` contains `b` of all points in `b` is also in `a`.
 
-      [-----A-----)
-        [---B---)
+  For an interval `a` to contain an interval `b`, all points
+  in `b` must be contained in `a`:
 
-  This means that a.left.point is less than b.left.point (or unbounded), and a.right.point is greater than
-  b.right.point (or unbounded)
+      a: [-------]
+      b:   [---]
+      r: true
 
-  If A and B's point match, then B is "in" A if A and B share bound type.
-  E.g. if a.left.point and b.left.point equals, then A contains B if both A's and B's
-  left_incl is inclusive, or if both A's and B's left_incl is exclusive.
+      a: [---]
+      b: [---]
+      r: true
 
-  If either of B's points are unbounded, then A only contains B
-  if the corresponding point in A is also unbounded.
+      a: [---]
+      b: (---)
+      r: true
+
+      a: (---)
+      b: [---]
+      r: false
+
+      a:   [---]
+      b: [-------]
+      r: false
+
+  This means that `a.left` is less than `b.left` (or unbounded), and `a.right` is greater than
+  `b.right` (or unbounded)
+
+  If `a` and `b`'s point match, then `b` is "in" `a` if `a` and `b` share bound types.
+  
+  E.g. if `a.left` and `b.left` matches, then `a` contains `b` if both `a` and `b`'s
+  `left` is inclusive or exclusive.
+
+  If either of `b` endpoints are unbounded, then `a` only contains `b`
+  if the corresponding endpoint in `a` is also unbounded.
 
   ## Examples
 
@@ -569,7 +651,7 @@ defmodule Interval do
       true
   """
   @spec contains?(t(), t()) :: boolean()
-  def contains?(a, b) do
+  def contains?(%__MODULE__{} = a, %__MODULE__{} = b) do
     # Neither A or B must be empty, so that's a prerequisite for
     # even checking anything.
     prerequisite = not (empty?(a) or empty?(b))
@@ -601,9 +683,16 @@ defmodule Interval do
   end
 
   @doc """
-  Union interval A and B.
-  A and B must overlap or be adjacent to produce a meaningful result,
-  otherwise an empty interval is returned.
+  Computes the union of `a` and `b`.
+
+  The union contains all of the points that are either in `a` or `b`.
+
+  If either `a` or `b` are empty, the returned interval will be empty.
+
+      a: [---)
+      b:   [---)
+      r: [-----)
+
 
   ## Examples
 
@@ -623,7 +712,7 @@ defmodule Interval do
       new(left: 1, right: 3)
 
       iex> union(new(left: 1, right: 2), new(left: 3, right: 4))
-      Interval.empty()
+      new(left: 0, right: 0)
   """
   def union(a, b) do
     cond do
@@ -650,13 +739,28 @@ defmodule Interval do
         # It should always be true, so no point in checking:
         true == strictly_left_of?(a, b) or strictly_right_of?(a, b)
 
-        empty()
+        into_empty(a)
     end
   end
 
   @doc """
-  Return the intersection between two intervals, such that the returned
-  interval contains all of the points that A and B has in common.
+  Compute the intersection between `a` and `b`.
+
+  The intersection contains all of the points that are both in `a` and `b`.
+
+  If either `a` or `b` are empty, the returned interval will be empty.
+
+      a: [----]
+      b:    [----]
+      r:    [-]
+
+      a: (----)
+      b:    (----)
+      r:    (-)
+
+      a: [----)
+      b:    [----)
+      r:    [-)
 
   ## Examples:
 
@@ -701,7 +805,7 @@ defmodule Interval do
       # if A and B doesn't overlap,
       # then there can be no intersection
       not overlaps?(a, b) ->
-        empty()
+        into_empty(a)
 
       # otherwise, we can compute the intersection:
       true ->
@@ -757,15 +861,20 @@ defmodule Interval do
   end
 
   # completely unbounded:
-  def unpack_bounds(""), do: {:unbounded, :unbounded}
+  defp unpack_bounds(""), do: {:unbounded, :unbounded}
   # unbounded either left or right
-  def unpack_bounds(")"), do: {:unbounded, :exclusive}
-  def unpack_bounds("("), do: {:exclusive, :unbounded}
-  def unpack_bounds("]"), do: {:unbounded, :inclusive}
-  def unpack_bounds("["), do: {:inclusive, :unbounded}
+  defp unpack_bounds(")"), do: {:unbounded, :exclusive}
+  defp unpack_bounds("("), do: {:exclusive, :unbounded}
+  defp unpack_bounds("]"), do: {:unbounded, :inclusive}
+  defp unpack_bounds("["), do: {:inclusive, :unbounded}
   # bounded both sides
-  def unpack_bounds("()"), do: {:exclusive, :exclusive}
-  def unpack_bounds("[]"), do: {:inclusive, :inclusive}
-  def unpack_bounds("[)"), do: {:inclusive, :exclusive}
-  def unpack_bounds("(]"), do: {:exclusive, :inclusive}
+  defp unpack_bounds("()"), do: {:exclusive, :exclusive}
+  defp unpack_bounds("[]"), do: {:inclusive, :inclusive}
+  defp unpack_bounds("[)"), do: {:inclusive, :exclusive}
+  defp unpack_bounds("(]"), do: {:exclusive, :inclusive}
+
+  defp into_empty(interval) do
+    %{interval | left: :empty, right: :empty}
+  end
+
 end

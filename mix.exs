@@ -32,7 +32,7 @@ defmodule Interval.MixProject do
       source_ref: "v#{@version}",
       # homepage_url: "https://github.com/tbug/interval_elixir",
       docs: [
-        main: "Interval",
+        main: "readme",
         extras: ["README.md"]
       ],
     ]
