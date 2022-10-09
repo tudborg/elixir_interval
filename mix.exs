@@ -11,7 +11,7 @@ defmodule Interval.MixProject do
       Interval / range operations over any data type.
       """,
       version: @version,
-      elixir: "~> 1.13",
+      elixir: "~> 1.11",
       start_permanent: Mix.env() == :prod,
       test_coverage: test_coverage(),
       preferred_cli_env: [check: :test],
