@@ -1,8 +1,12 @@
 # Interval
 
-docs: <https://hexdocs.pm/interval>
+[![CI](https://github.com/tbug/elixir_interval/actions/workflows/ci.yml/badge.svg)](https://github.com/tbug/elixir_interval/actions/workflows/ci.yml)
+[![Hex.pm](https://img.shields.io/hexpm/v/interval.svg)](https://hex.pm/packages/interval)
+[![Documentation](https://img.shields.io/badge/documentation-gray)](https://hexdocs.pm/interval/)
 
-inspired by [PostgreSQL's range types](https://www.postgresql.org/docs/current/rangetypes.html)
+Datatype and operations for both discrete and continuous intervals,
+Inspired by [PostgreSQL's range types](https://www.postgresql.org/docs/current/rangetypes.html).
+
 
 ## Installation
 
@@ -16,19 +20,9 @@ def deps do
 end
 ```
 
-## Concept
-
-### Interval
-
-### Empty
-
-### Bounds
-
-
 ## Examples
 
-
-#### Integer intervals
+### Integer intervals
 
 ```elixir
 a = Interval.new(left: 1, right: 4, bounds: "[]")
@@ -41,7 +35,7 @@ c = Interval.intersection(a, b) # [2, 4]
 d = Interval.union(a, b) # [1, 5]
 ```
 
-#### DateTime intervals
+### DateTime intervals
 
 ```elixir
 # default bound is  "[)"

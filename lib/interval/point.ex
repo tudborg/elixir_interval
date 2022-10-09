@@ -27,7 +27,7 @@ defprotocol Interval.Point do
   The continuous point type is for points where there exists (at least conceptually) an
   infinite number of points between two other points.  
   Examples of this are floats, points in time, etc.
-  
+
   These points have no useful notion of the "next" and "previous" point,
   and implements these functions as raising an error.
 
@@ -67,23 +67,20 @@ defprotocol Interval.Point do
   @doc """
   Returns if the Point lies on a discrete (like integer)
   or a continuous line (like floats).
-
-  If the value given is not a valid Point, then this function
-  must return `:invalid`
   """
-  @spec type(t()) :: :discrete | :continuous | :invalid
+  @spec type(t()) :: :discrete | :continuous
   def type(a)
 
   @doc """
   Given a point A, return the next value after A.
-  If the point type is continuous then this error must raise an error
+  If the point type is continuous then this function should return `a`
   """
   @spec next(t()) :: t()
   def next(a)
 
   @doc """
   Given a point A, return the previous value after A.
-  If the point type is continuous then this error must raise an error
+  If the point type is continuous then this function should return `a`
   """
   @spec previous(t()) :: t()
   def previous(a)

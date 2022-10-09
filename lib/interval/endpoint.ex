@@ -12,13 +12,18 @@ defmodule Interval.Endpoint do
 
   @doc """
   Create a new Endpoint
+
+  ## Examples
+
+      iex> new(1, :inclusive)
+      %Endpoint{point: 1, inclusive: true}
+
+      iex> new(:an_atom, :inclusive)
+      ** (RuntimeError) No Interval.Point protocol implementation for :an_atom
   """
   def new(point, bound) when not is_nil(point) and bound in [:inclusive, :exclusive] do
     if is_nil(Point.impl_for(point)) do
-      raise "No Interval.Point protocol implementation for #{inspect point}"
-    end
-    if Point.type(point) not in [:discrete, :continuous] do
-      raise "Not a valid Interval.Point: #{inspect point}"
+      raise "No Interval.Point protocol implementation for #{inspect(point)}"
     end
 
     %__MODULE__{
@@ -39,10 +44,6 @@ defmodule Interval.Endpoint do
   """
   def exclusive(point) when not is_nil(point) do
     new(point, :exclusive)
-  end
-
-  def point_impl_for(%__MODULE__{point: point}) do
-    Point.impl_for(point)
   end
 
   # Is the endpoint inclusive?

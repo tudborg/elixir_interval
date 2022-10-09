@@ -1,6 +1,8 @@
 defmodule IntervalTest do
   use ExUnit.Case
 
+  alias Interval.Endpoint
+
   doctest Interval, import: true
 
   defp inter(p), do: Interval.single(p)
@@ -15,6 +17,15 @@ defmodule IntervalTest do
     assert Interval.new(left: 1, right: 2)
     assert Interval.new(left: 1, right: 3, bounds: "()")
 
+    # unbounded specified by the bounds
+    assert ubr = Interval.new(left: 1, right: 1, bounds: "[")
+    assert ubl = Interval.new(left: 1, right: 1, bounds: "]")
+    assert Interval.unbounded_left?(ubl)
+    assert Interval.unbounded_right?(ubr)
+    assert Interval.new(left: 1, right: 1, bounds: "(")
+    assert Interval.new(left: 1, right: 1, bounds: ")")
+    assert Interval.new(left: 1, right: 1, bounds: "")
+
     assert Interval.new(left: 1.0, right: 2.0)
     assert Interval.new(left: 1.0, right: 3.0, bounds: "()")
 
@@ -26,22 +37,41 @@ defmodule IntervalTest do
              Interval.new(left: 2, right: 2, bounds: "[]")
 
     # unbounded left and right and both
-    assert Interval.new(left: 1) |> Interval.right_unbounded?()
-    assert Interval.new(right: 1) |> Interval.left_unbounded?()
-    assert Interval.new() |> Interval.left_unbounded?()
-    assert Interval.new() |> Interval.right_unbounded?()
+    assert Interval.new(left: 1) |> Interval.unbounded_right?()
+    assert Interval.new(right: 1) |> Interval.unbounded_left?()
+    assert Interval.new() |> Interval.unbounded_left?()
+    assert Interval.new() |> Interval.unbounded_right?()
 
     # bounds on discrete type (bounds always normalized to '[)')
-    assert Interval.new(left: 1, right: 2, bounds: "[)") |> Interval.left_inclusive?()
-    assert Interval.new(left: 1, right: 2, bounds: "(]") |> Interval.left_inclusive?()
-    refute Interval.new(left: 1, right: 2, bounds: "(]") |> Interval.right_inclusive?()
-    refute Interval.new(left: 1, right: 2, bounds: "[)") |> Interval.right_inclusive?()
+    assert Interval.new(left: 1, right: 2, bounds: "[)") |> Interval.inclusive_left?()
+    assert Interval.new(left: 1, right: 2, bounds: "(]") |> Interval.inclusive_left?()
+    refute Interval.new(left: 1, right: 2, bounds: "(]") |> Interval.inclusive_right?()
+    refute Interval.new(left: 1, right: 2, bounds: "[)") |> Interval.inclusive_right?()
 
     # bounds on continuous type
-    assert Interval.new(left: 1.0, right: 2.0, bounds: "[)") |> Interval.left_inclusive?()
-    refute Interval.new(left: 1.0, right: 2.0, bounds: "(]") |> Interval.left_inclusive?()
-    assert Interval.new(left: 1.0, right: 2.0, bounds: "(]") |> Interval.right_inclusive?()
-    refute Interval.new(left: 1.0, right: 2.0, bounds: "[)") |> Interval.right_inclusive?()
+    assert Interval.new(left: 1.0, right: 2.0, bounds: "[)") |> Interval.inclusive_left?()
+    refute Interval.new(left: 1.0, right: 2.0, bounds: "(]") |> Interval.inclusive_left?()
+    assert Interval.new(left: 1.0, right: 2.0, bounds: "(]") |> Interval.inclusive_right?()
+    refute Interval.new(left: 1.0, right: 2.0, bounds: "[)") |> Interval.inclusive_right?()
+  end
+
+  test "normalize/1" do
+    # normalizing an empty results in an empty.
+    empty = Interval.new(left: 0, right: 0)
+    assert Interval.normalize(empty) == empty
+
+    # left and right type mismatch raises
+    assert_raise RuntimeError, fn ->
+      Interval.new(left: 0, right: 0.0)
+    end
+
+    # if left > right, raises
+    left = Endpoint.new(2, :inclusive)
+    right = Endpoint.new(1, :inclusive)
+
+    assert_raise RuntimeError, fn ->
+      Interval.from_endpoints(left, right)
+    end
   end
 
   test "empty?/1" do
@@ -56,6 +86,24 @@ defmodule IntervalTest do
     assert Interval.empty?(inter(1, 2, "()"))
     # but (1,3) should be non-empty because 2 is in the interval
     refute Interval.empty?(inter(1, 3, "()"))
+  end
+
+  test "inclusive_left?/1" do
+    a = inter(1.0, 2.0, "[]")
+    b = inter(1.0, 2.0, "()")
+    empty = inter(1.0, 1.0, "()")
+    assert Interval.inclusive_left?(a)
+    refute Interval.inclusive_left?(b)
+    refute Interval.inclusive_left?(empty)
+  end
+
+  test "inclusive_right?/1" do
+    a = inter(1.0, 2.0, "[]")
+    b = inter(1.0, 2.0, "()")
+    empty = inter(1.0, 1.0, "()")
+    assert Interval.inclusive_right?(a)
+    refute Interval.inclusive_right?(b)
+    refute Interval.inclusive_right?(empty)
   end
 
   test "strictly_left_of?/2" do

@@ -37,7 +37,7 @@ defmodule Interval do
           # Left endpoint
           left: :empty | :unbounded | Interval.Endpoint.t(),
           # Right  endpoint
-          right: :empty | :unbounded | Interval.Endpoint.t(),
+          right: :empty | :unbounded | Interval.Endpoint.t()
         }
 
   @doc """
@@ -108,10 +108,10 @@ defmodule Interval do
 
     type = Point.type(left.point)
     comp = Point.compare(left.point, right.point)
-    left_inclusive = Endpoint.inclusive?(left)
-    right_inclusive = Endpoint.inclusive?(right)
+    inclusive_left = Endpoint.inclusive?(left)
+    inclusive_right = Endpoint.inclusive?(right)
 
-    case {type, comp, left_inclusive, right_inclusive} do
+    case {type, comp, inclusive_left, inclusive_right} do
       # left > right is an error:
       {_, :gt, _, _} ->
         raise "left > right which is invalid"
@@ -140,14 +140,12 @@ defmodule Interval do
       # if both bounds are exclusive, we also need to check for empty, because
       # we could still have an empty interval like (1,2)
       {:discrete, _, false, false} ->
-        next_left_point = Point.next(left.point)
-
-        case Point.compare(next_left_point, right.point) do
+        case Point.compare(Point.next(left.point), right.point) do
           :eq ->
             into_empty(original)
 
           :lt ->
-            %__MODULE__{original | left: Endpoint.inclusive(next_left_point)}
+            %__MODULE__{original | left: normalize_left_endpoint(left)}
         end
 
       # Remaining bound combinations are:
@@ -160,14 +158,14 @@ defmodule Interval do
       {:discrete, _, true, true} ->
         %__MODULE__{
           original
-          | right: Endpoint.exclusive(Point.next(right.point))
+          | right: normalize_right_endpoint(right)
         }
 
       {:discrete, _, false, true} ->
         %__MODULE__{
           original
-          | left: Endpoint.inclusive(Point.next(left.point)),
-            right: Endpoint.exclusive(Point.next(right.point))
+          | left: normalize_left_endpoint(left),
+            right: normalize_right_endpoint(right)
         }
 
       # Finally, if we have an [) interval, then the original was
@@ -233,18 +231,18 @@ defmodule Interval do
 
   ## Examples
 
-      iex> left_unbounded?(new())
+      iex> unbounded_left?(new())
       true
       
-      iex> left_unbounded?(new(right: 2))
+      iex> unbounded_left?(new(right: 2))
       true
       
-      iex> left_unbounded?(new(left: 1, right: 2))
+      iex> unbounded_left?(new(left: 1, right: 2))
       false
 
   """
-  def left_unbounded?(%__MODULE__{left: :unbounded}), do: true
-  def left_unbounded?(%__MODULE__{}), do: false
+  def unbounded_left?(%__MODULE__{left: :unbounded}), do: true
+  def unbounded_left?(%__MODULE__{}), do: false
 
   @doc """
   Check if the interval is right-unbounded.
@@ -254,18 +252,18 @@ defmodule Interval do
 
   ## Examples
 
-      iex> right_unbounded?(new(right: 1))
+      iex> unbounded_right?(new(right: 1))
       false
       
-      iex> right_unbounded?(new())
+      iex> unbounded_right?(new())
       true
       
-      iex> right_unbounded?(new(left: 1))
+      iex> unbounded_right?(new(left: 1))
       true
 
   """
-  def right_unbounded?(%__MODULE__{right: :unbounded}), do: true
-  def right_unbounded?(%__MODULE__{}), do: false
+  def unbounded_right?(%__MODULE__{right: :unbounded}), do: true
+  def unbounded_right?(%__MODULE__{}), do: false
 
   @doc """
   Is the interval left-inclusive?
@@ -273,22 +271,23 @@ defmodule Interval do
   The interval is left-inclusive if the left endpoint
   value is included in the interval.
 
-  NOTE: Discrete intervals (like integers and dates) are always normalized
-  to be left-inclusive right-exclusive (`[)`) which this function reflects.
+  > #### Note {: .info}
+  > Discrete intervals (like integers and dates) are always normalized
+  > to be left-inclusive right-exclusive (`[)`) which this function reflects.
 
 
-      iex> left_inclusive?(new(left: 1.0, right: 2.0, bounds: "[]"))
+      iex> inclusive_left?(new(left: 1.0, right: 2.0, bounds: "[]"))
       true
       
-      iex> left_inclusive?(new(left: 1.0, right: 2.0, bounds: "[)"))
+      iex> inclusive_left?(new(left: 1.0, right: 2.0, bounds: "[)"))
       true
       
-      iex> left_inclusive?(new(left: 1.0, right: 2.0, bounds: "()"))
+      iex> inclusive_left?(new(left: 1.0, right: 2.0, bounds: "()"))
       false
 
   """
-  def left_inclusive?(%__MODULE__{left: %Endpoint{} = left}), do: Endpoint.inclusive?(left)
-  def left_inclusive?(%__MODULE__{}), do: false
+  def inclusive_left?(%__MODULE__{left: %Endpoint{} = left}), do: Endpoint.inclusive?(left)
+  def inclusive_left?(%__MODULE__{}), do: false
 
   @doc """
   Is the interval right-inclusive?
@@ -296,22 +295,23 @@ defmodule Interval do
   The interval is right-inclusive if the right endpoint
   value is included in the interval.
 
-  NOTE: Discrete intervals (like integers and dates) are always normalized
-  to be left-inclusive right-exclusive (`[)`) which this function reflects.
+  > #### Note {: .info}
+  > Discrete intervals (like integers and dates) are always normalized
+  > to be left-inclusive right-exclusive (`[)`) which this function reflects.
 
 
-      iex> right_inclusive?(new(left: 1.0, right: 2.0, bounds: "[]"))
+      iex> inclusive_right?(new(left: 1.0, right: 2.0, bounds: "[]"))
       true
       
-      iex> right_inclusive?(new(left: 1.0, right: 2.0, bounds: "[)"))
+      iex> inclusive_right?(new(left: 1.0, right: 2.0, bounds: "[)"))
       false
       
-      iex> right_inclusive?(new(left: 1.0, right: 2.0, bounds: "()"))
+      iex> inclusive_right?(new(left: 1.0, right: 2.0, bounds: "()"))
       false
 
   """
-  def right_inclusive?(%__MODULE__{right: %Endpoint{} = right}), do: Endpoint.inclusive?(right)
-  def right_inclusive?(%__MODULE__{}), do: false
+  def inclusive_right?(%__MODULE__{right: %Endpoint{} = right}), do: Endpoint.inclusive?(right)
+  def inclusive_right?(%__MODULE__{}), do: false
 
   @doc """
   Is `a` strictly left of `b`.
@@ -344,13 +344,13 @@ defmodule Interval do
   """
   @spec strictly_left_of?(t(), t()) :: boolean()
   def strictly_left_of?(a, b) do
-    not right_unbounded?(a) and
-      not left_unbounded?(b) and
+    not unbounded_right?(a) and
+      not unbounded_left?(b) and
       not empty?(a) and
       not empty?(b) and
       case Point.compare(a.right.point, b.left.point) do
         :lt -> true
-        :eq -> not right_inclusive?(a) or not left_inclusive?(b)
+        :eq -> not inclusive_right?(a) or not inclusive_left?(b)
         :gt -> false
       end
   end
@@ -386,13 +386,13 @@ defmodule Interval do
   """
   @spec strictly_right_of?(t(), t()) :: boolean()
   def strictly_right_of?(a, b) do
-    not left_unbounded?(a) and
-      not right_unbounded?(b) and
+    not unbounded_left?(a) and
+      not unbounded_right?(b) and
       not empty?(a) and
       not empty?(b) and
       case Point.compare(a.left.point, b.right.point) do
         :lt -> false
-        :eq -> not left_inclusive?(a) or not right_inclusive?(b)
+        :eq -> not inclusive_left?(a) or not inclusive_right?(b)
         :gt -> true
       end
   end
@@ -433,8 +433,8 @@ defmodule Interval do
   @spec adjacent_left_of?(t(), t()) :: boolean()
   def adjacent_left_of?(a, b) do
     prerequisite =
-      not right_unbounded?(a) and
-        not left_unbounded?(b) and
+      not unbounded_right?(a) and
+        not unbounded_left?(b) and
         not empty?(a) and
         not empty?(b)
 
@@ -442,19 +442,19 @@ defmodule Interval do
       case Point.type(a.right.point) do
         :discrete ->
           check =
-            right_inclusive?(a) != left_inclusive?(b) and
+            inclusive_right?(a) != inclusive_left?(b) and
               Point.compare(a.right.point, b.left.point) == :eq
 
           # NOTE: Don't think this is needed when we also
           # normalize discrete values to [)
           next_check =
-            right_inclusive?(a) and left_inclusive?(b) and
+            inclusive_right?(a) and inclusive_left?(b) and
               Point.compare(Point.next(a.right.point), b.left.point) == :eq
 
           check or next_check
 
         :continuous ->
-          right_inclusive?(a) != left_inclusive?(b) and
+          inclusive_right?(a) != inclusive_left?(b) and
             Point.compare(a.right.point, b.left.point) == :eq
       end
     end
@@ -495,8 +495,8 @@ defmodule Interval do
   @spec adjacent_right_of?(t(), t()) :: boolean()
   def adjacent_right_of?(a, b) do
     prerequisite =
-      not left_unbounded?(a) and
-        not right_unbounded?(b) and
+      not unbounded_left?(a) and
+        not unbounded_right?(b) and
         not empty?(a) and
         not empty?(b)
 
@@ -504,20 +504,20 @@ defmodule Interval do
       case Point.type(a.left.point) do
         :discrete ->
           check =
-            left_inclusive?(a) != right_inclusive?(b) and
+            inclusive_left?(a) != inclusive_right?(b) and
               Point.compare(a.left.point, b.right.point) == :eq
 
           # NOTE: Don't think this is needed when we also
           # normalize discrete values to [)
           next_check =
-            left_inclusive?(a) and right_inclusive?(b) and
+            inclusive_left?(a) and inclusive_right?(b) and
               Point.compare(Point.previous(a.left.point), b.right.point) == :eq
 
           check or next_check
 
         :continuous ->
           Point.compare(a.left.point, b.right.point) == :eq and
-            left_inclusive?(a) != right_inclusive?(b)
+            inclusive_left?(a) != inclusive_right?(b)
       end
     end
   end
@@ -623,7 +623,7 @@ defmodule Interval do
   `b.right` (or unbounded)
 
   If `a` and `b`'s point match, then `b` is "in" `a` if `a` and `b` share bound types.
-  
+
   E.g. if `a.left` and `b.left` matches, then `a` contains `b` if both `a` and `b`'s
   `left` is inclusive or exclusive.
 
@@ -659,21 +659,21 @@ defmodule Interval do
     with true <- prerequisite do
       # check that a.left.point is less than or equal to (if inclusive) b.left.point:
       contains_left =
-        left_unbounded?(a) or
-          (not left_unbounded?(b) and
+        unbounded_left?(a) or
+          (not unbounded_left?(b) and
              case Point.compare(a.left.point, b.left.point) do
                :gt -> false
-               :eq -> left_inclusive?(a) == left_inclusive?(b)
+               :eq -> inclusive_left?(a) == inclusive_left?(b)
                :lt -> true
              end)
 
       # check that a.right.point is greater than or equal to (if inclusive) b.right.point:
       contains_right =
-        right_unbounded?(a) or
-          (not right_unbounded?(b) and
+        unbounded_right?(a) or
+          (not unbounded_right?(b) and
              case Point.compare(a.right.point, b.right.point) do
                :gt -> true
-               :eq -> right_inclusive?(a) == right_inclusive?(b)
+               :eq -> inclusive_right?(a) == inclusive_right?(b)
                :lt -> false
              end)
 
@@ -876,5 +876,4 @@ defmodule Interval do
   defp into_empty(interval) do
     %{interval | left: :empty, right: :empty}
   end
-
 end

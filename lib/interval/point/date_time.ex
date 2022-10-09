@@ -17,22 +17,27 @@ if Application.get_env(:interval, DateTime, true) do
       :continuous
     """
     def type(%DateTime{}), do: :continuous
-    def type(_), do: :invalid
 
     @doc """
       iex> next(~U[2022-01-01 00:00:00Z])
-      ** (RuntimeError) DateTime is not a discrete Interval.Point type
+      ~U[2022-01-01 00:00:00Z]
     """
-    def next(%DateTime{}), do: raise("DateTime is not a discrete Interval.Point type")
+    def next(%DateTime{} = a), do: a
 
     @doc """
       iex> previous(~U[2022-01-01 00:00:00Z])
-      ** (RuntimeError) DateTime is not a discrete Interval.Point type
+      ~U[2022-01-01 00:00:00Z]
     """
-    def previous(%DateTime{}), do: raise("DateTime is not a discrete Interval.Point type")
+    def previous(%DateTime{} = a), do: a
 
     @doc """
       iex> Interval.Point.DateTime.min(~U[2022-01-01 00:00:00Z], ~U[2022-01-02 00:00:00Z])
+      ~U[2022-01-01 00:00:00Z]
+
+      iex> Interval.Point.DateTime.min(~U[2022-01-01 00:00:00Z], ~U[2022-01-01 00:00:00Z])
+      ~U[2022-01-01 00:00:00Z]
+      
+      iex> Interval.Point.DateTime.min(~U[2022-01-02 00:00:00Z], ~U[2022-01-01 00:00:00Z])
       ~U[2022-01-01 00:00:00Z]
     """
     def min(a, b) do
@@ -45,6 +50,12 @@ if Application.get_env(:interval, DateTime, true) do
 
     @doc """
       iex> Interval.Point.DateTime.max(~U[2022-01-01 00:00:00Z], ~U[2022-01-02 00:00:00Z])
+      ~U[2022-01-02 00:00:00Z]
+
+      iex> Interval.Point.DateTime.max(~U[2022-01-02 00:00:00Z], ~U[2022-01-02 00:00:00Z])
+      ~U[2022-01-02 00:00:00Z]
+      
+      iex> Interval.Point.DateTime.max(~U[2022-01-02 00:00:00Z], ~U[2022-01-01 00:00:00Z])
       ~U[2022-01-02 00:00:00Z]
     """
     def max(a, b) do

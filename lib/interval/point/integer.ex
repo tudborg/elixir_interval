@@ -19,7 +19,6 @@ if Application.get_env(:interval, Integer, true) do
       :discrete
     """
     def type(a) when is_integer(a), do: :discrete
-    def type(_), do: :invalid
 
     @doc """
       iex> 1 |> next() |> next()

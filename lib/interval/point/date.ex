@@ -17,7 +17,6 @@ if Application.get_env(:interval, Date, true) do
       :discrete
     """
     def type(%Date{}), do: :discrete
-    def type(_), do: :invalid
 
     @doc """
       iex> next(~D[2022-01-01])
@@ -34,6 +33,12 @@ if Application.get_env(:interval, Date, true) do
     @doc """
       iex> Interval.Point.Date.min(~D[2022-01-01], ~D[2022-01-02])
       ~D[2022-01-01]
+
+      iex> Interval.Point.Date.min(~D[2022-01-01], ~D[2022-01-01])
+      ~D[2022-01-01]
+
+      iex> Interval.Point.Date.min(~D[2022-01-02], ~D[2022-01-01])
+      ~D[2022-01-01]
     """
     def min(a, b) do
       case Date.compare(a, b) do
@@ -45,6 +50,12 @@ if Application.get_env(:interval, Date, true) do
 
     @doc """
       iex> Interval.Point.Date.max(~D[2022-01-01], ~D[2022-01-02])
+      ~D[2022-01-02]
+
+      iex> Interval.Point.Date.max(~D[2022-01-02], ~D[2022-01-02])
+      ~D[2022-01-02]
+      
+      iex> Interval.Point.Date.max(~D[2022-01-02], ~D[2022-01-01])
       ~D[2022-01-02]
     """
     def max(a, b) do

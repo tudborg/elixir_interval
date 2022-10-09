@@ -19,19 +19,18 @@ if Application.get_env(:interval, Float, true) do
       :continuous
     """
     def type(a) when is_float(a), do: :continuous
-    def type(_), do: :invalid
 
     @doc """
       iex> 1.0 |> next()
-      ** (RuntimeError) Float is continuous
+      1.0
     """
-    def next(a) when is_float(a), do: raise("Float is continuous")
+    def next(a) when is_float(a), do: a
 
     @doc """
       iex> 3.0 |> previous()
-      ** (RuntimeError) Float is continuous
+      3.0
     """
-    def previous(a) when is_float(a), do: raise("Float is continuous")
+    def previous(a) when is_float(a), do: a
 
     @doc """
       iex> Interval.Point.Float.min(1, 2)
