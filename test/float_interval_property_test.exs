@@ -29,6 +29,28 @@ defmodule Interval.FloatIntervalPropertyTest do
     end
   end
 
+  property "intersection/2's relationship with contains?/2" do
+    check all(
+            a <- Helper.float_interval(),
+            b <- Helper.float_interval()
+          ) do
+      intersection = Interval.intersection(a, b)
+
+      cond do
+        # when A contains B (or later, B contains A) then the
+        # intersection between the two intervals will be the contained one.
+        Interval.contains?(a, b) ->
+          assert intersection === b
+
+        Interval.contains?(b, a) ->
+          assert intersection === a
+
+        true ->
+          assert Interval.intersection(a, b) === Interval.intersection(b, a)
+      end
+    end
+  end
+
   property "contains?/2" do
     check all(
             a <- Helper.float_interval(),

@@ -189,6 +189,13 @@ defmodule IntervalTest do
              inter(2.0, 3.0, "[)")
   end
 
+  test "intersection/2 with unbounded intervals" do
+    a = Interval.new(left: 1, right: 3)
+    b = Interval.new(left: 0, right: nil)
+    assert Interval.intersection(a, b) === Interval.intersection(b, a)
+    assert Interval.intersection(a, b) === a
+  end
+
   test "contains/2 regression 2022-10-07 - `,1)` failed to contain `[0,1)`" do
     a = %Interval{left: :unbounded, right: %Interval.Endpoint{inclusive: false, point: 1}}
 
