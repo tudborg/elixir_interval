@@ -725,8 +725,8 @@ defmodule Interval do
 
       # if a and b overlap or are adjacent, we can union the intervals
       overlaps?(a, b) or adjacent_left_of?(a, b) or adjacent_right_of?(a, b) ->
-        left = min_endpoint(a.left, b.left)
-        right = max_endpoint(a.right, b.right)
+        left = min_endpoint(a.left, b.left, :prefer_unbounded)
+        right = max_endpoint(a.right, b.right, :prefer_unbounded)
 
         from_endpoints(left, right)
 
@@ -769,7 +769,6 @@ defmodule Interval do
       a: [----)
       b:    [----)
       c:    [-)
-
       iex> intersection(new(left: 1, right: 3), new(left: 2, right: 4))
       new(left: 2, right: 3)
 
@@ -778,19 +777,24 @@ defmodule Interval do
       a: [----)
       b:    [----)
       c:    [-)
-
       iex> intersection(new(left: 1.0, right: 3.0), new(left: 2.0, right: 4.0))
       new(left: 2.0, right: 3.0)
 
       a: (----)
       b:    (----)
       c:    (-)
-
       iex> intersection(
       ...>   new(left: 1.0, right: 3.0, bounds: "()"),
       ...>   new(left: 2.0, right: 4.0, bounds: "()")
       ...> )
       new(left: 2.0, right: 3.0, bounds: "()")
+
+      a: [-----)
+      b:   [-------
+      c:   [---)
+      iex> intersection(new(left: 1.0, right: 3.0), new(left: 2.0))
+      new(left: 2.0, right: 3.0)
+
   """
   def intersection(a, b) do
     cond do
@@ -809,9 +813,8 @@ defmodule Interval do
 
       # otherwise, we can compute the intersection:
       true ->
-        left = max_endpoint(a.left, b.left)
-        right = min_endpoint(a.right, b.right)
-
+        left = max_endpoint(a.left, b.left, :prefer_bounded)
+        right = min_endpoint(a.right, b.right, :prefer_bounded)
         from_endpoints(left, right)
     end
   end
@@ -819,11 +822,12 @@ defmodule Interval do
   ##
   ## Helpers
   ##
+  defp min_endpoint(:unbounded, _b, :prefer_unbounded), do: :unbounded
+  defp min_endpoint(_a, :unbounded, :prefer_unbounded), do: :unbounded
+  defp min_endpoint(:unbounded, b, :prefer_bounded), do: b
+  defp min_endpoint(a, :unbounded, :prefer_bounded), do: a
 
-  defp min_endpoint(:unbounded, _b), do: :unbounded
-  defp min_endpoint(_a, :unbounded), do: :unbounded
-
-  defp min_endpoint(left, right) do
+  defp min_endpoint(left, right, _) do
     case Point.compare(left.point, right.point) do
       :gt ->
         right
@@ -840,10 +844,12 @@ defmodule Interval do
     end
   end
 
-  defp max_endpoint(:unbounded, _b), do: :unbounded
-  defp max_endpoint(_a, :unbounded), do: :unbounded
+  defp max_endpoint(:unbounded, _b, :prefer_unbounded), do: :unbounded
+  defp max_endpoint(_a, :unbounded, :prefer_unbounded), do: :unbounded
+  defp max_endpoint(:unbounded, b, :prefer_bounded), do: b
+  defp max_endpoint(a, :unbounded, :prefer_bounded), do: a
 
-  defp max_endpoint(left, right) do
+  defp max_endpoint(left, right, _) do
     case Point.compare(left.point, right.point) do
       :gt ->
         left
