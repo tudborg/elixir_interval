@@ -15,7 +15,7 @@ The package can be installed by adding `interval` to your list of dependencies i
 ```elixir
 def deps do
   [
-    {:interval, "~> 0.1.1"}
+    {:interval, "~> 0.1.2"}
   ]
 end
 ```
@@ -49,3 +49,11 @@ Interval.intersection(y2022, x)
 #   right: %Interval.Endpoint{inclusive: false, point: ~U[2022-03-01 00:00:00Z]}
 # }
 ```
+
+
+## Changelog
+
+### v0.1.2
+
+Fixed a correctness bug in intersection, where intersections between
+intervals containing unbounded endpoints would be incorrectly computed.
