@@ -26,18 +26,14 @@ defmodule Interval do
   in the interval.
 
   The endpoints are stored as an `t:Interval.Endpoint.t/0` or
-  the atom `:unbounded`.  
-
-  A special case exists for the empty interval,
-  which is represented by both `left` and `right` being
-  set to the atom `:empty`
+  the atom `:unbounded`.
 
   """
   @type t() :: %__MODULE__{
           # Left endpoint
-          left: :empty | :unbounded | Interval.Endpoint.t(),
+          left: :unbounded | Interval.Endpoint.t(),
           # Right  endpoint
-          right: :empty | :unbounded | Interval.Endpoint.t()
+          right: :unbounded | Interval.Endpoint.t()
         }
 
   @doc """
@@ -91,8 +87,6 @@ defmodule Interval do
   @doc """
   Normalize an `Interval` struct
   """
-  # lef and right endpoints set to :empty, special case for normalized empty interval
-  def normalize(%__MODULE__{left: :empty, right: :empty} = self), do: self
   # non-empty non-unbounded Interval:
   def normalize(%__MODULE__{left: %Endpoint{} = left, right: %Endpoint{} = right} = original) do
     left_point_impl = Point.impl_for(left.point)
@@ -117,16 +111,18 @@ defmodule Interval do
         raise "left > right which is invalid"
 
       # intervals given as either (p,p), [p,p) or (p,p]
-      # are all normalized to empty.
       # (If you want a single point in an interval, give it as [p,p])
+      # The (p,p) interval is already normalize form
       {_, :eq, false, false} ->
-        into_empty(original)
+        normalized_empty(original)
 
+      # [p,p) and (p,p] is normalized by taking the exlusive endpoint and
+      # setting it as both left and right
       {_, :eq, true, false} ->
-        into_empty(original)
+        normalized_empty(original)
 
       {_, :eq, false, true} ->
-        into_empty(original)
+        normalized_empty(original)
 
       # otherwise, if the point type is continuous, the the orignal
       # interval was already normalized form:
@@ -139,10 +135,12 @@ defmodule Interval do
 
       # if both bounds are exclusive, we also need to check for empty, because
       # we could still have an empty interval like (1,2)
+      # which is the same as (1,1) so we normalize by setting
+      # both endpoints to the same value.
       {:discrete, _, false, false} ->
         case Point.compare(Point.next(left.point), right.point) do
           :eq ->
-            into_empty(original)
+            normalized_empty(original)
 
           :lt ->
             %__MODULE__{original | left: normalize_left_endpoint(left)}
@@ -206,7 +204,15 @@ defmodule Interval do
   Is the interval empty?
 
   An empty interval is an interval that represents no points.
-  Any interval interval containing no points is considered empty.
+  Any interval containing no points is considered empty.
+
+  An unbounded interval is never empty.
+
+  For continuous points, the interval is empty when the left and
+  right points are identical, and the point is not included in the interval.
+
+  For discrete points, the interval is empty when the left and right point
+  isn't inclusive, and there are no points between the left and right point.
 
   ## Examples
 
@@ -220,8 +226,45 @@ defmodule Interval do
       false
 
   """
-  def empty?(%__MODULE__{left: :empty, right: :empty}), do: true
-  def empty?(%__MODULE__{}), do: false
+  def empty?(%__MODULE__{left: :unbounded}), do: false
+  def empty?(%__MODULE__{right: :unbounded}), do: false
+  # If properly normalized, all empty intervals have been normalized to the form
+  # `(zero, zero)` so we can match directly on that:
+  def empty?(%__MODULE__{
+        left: %{inclusive: false, point: p},
+        right: %{inclusive: false, point: p}
+      }),
+      do: true
+
+  # If the interval is not properly normalized, we don't want to give an
+  # incorrect answer, so we do the math to check if the interval is indeed empty:
+  def empty?(%__MODULE__{left: %Endpoint{} = left, right: %Endpoint{} = right}) do
+    compare = Point.compare(left.point, right.point)
+
+    cond do
+      # left and right is equal, then the interval is empty
+      # if the point is not included in the interval.
+      # We don't want to rely on normalized intervals in empty?/1
+      # in this function body, because if the interval was already normalized,
+      # we'd only have to check for the `(zero,zero)` interval.
+      # Therefore we must assume that the bounds could be incorrectly set to e.g. [p,p)
+      compare == :eq ->
+        not left.inclusive or not right.inclusive
+
+      # if the point type is discrete and both bounds are exclusive,
+      # then the interval could _also_ be empty if next(left) == right,
+      # because the interval would represent 0 points.
+      Point.type(left.point) == :discrete and not left.inclusive and not right.inclusive ->
+        :eq ==
+          left.point
+          |> Point.next()
+          |> Point.compare(right.point)
+
+      # If none of the above, then the interval is not empty
+      true ->
+        false
+    end
+  end
 
   @doc """
   Check if the interval is left-unbounded.
@@ -312,6 +355,95 @@ defmodule Interval do
   """
   def inclusive_right?(%__MODULE__{right: %Endpoint{} = right}), do: Endpoint.inclusive?(right)
   def inclusive_right?(%__MODULE__{}), do: false
+
+  @doc """
+  Return the "size" of the interval.
+  The returned value depends on the Point implementation used.
+
+  - If the interval is unbounded, this function returns `nil`.
+
+  > #### Note {: .info}
+  > The size is implemented as `right - left`, ignoring inclusive/exclusive bounds.
+  > This works for discrete intervals because they are always normalized to `[)`.
+  > The implementation is the same for continuous intervals, but here we
+  > completely ignore the bounds, so the size of `(1.0, 3.0)` is exactly the same
+  > as the size of `[1.0, 3.0]`.
+
+  A second argument `unit` can be given to this function, which in turn
+  is handed to the call to `Interval.Point.subtract/3`, to return the difference
+  between the two points in the desired unit.
+
+  The default value for `unit` is Point implementation specific.
+
+  These are the default returned sizes for the built-in implementations:
+
+  - `Date` - days (integer)
+  - `DateTime` - seconds (integer)
+  - `Integer` - integer
+  - `Float` - float
+
+  ## For Discrete Intervals
+
+  For discrete point types, the size represents the number of elements the
+  interval contains (or `nil`, when empty).
+
+  I.e. for `Date` the size is the number of `Date` structs the interval
+  can be said to "contain" (aka. number of days)
+
+  ### Examples
+
+      iex> size(new(left: 1, right: 1, bounds: "[]"))
+      1
+
+      iex> size(new(left: 1, right: 3, bounds: "[)"))
+      2
+
+      # Note that this interval will be normalized to an empty (0,0) interval
+      # but the math is still the same: `right - left` 
+      iex> size(new(left: 1, right: 2, bounds: "()"))
+      0
+
+  ## For Continuous Intervals
+
+  For continuous intervals, the size is reported as the difference
+  between the left and right points.
+
+  ### Examples
+
+      # The size of the interval `[1.0, 5.0)` is also 4:
+      iex> size(new(left: 1.0, right: 5.0, bounds: "[)"))
+      4.0
+
+      # And likewise, so is the size of `[1.0, 5.0]` (note the bound change)
+      iex> size(new(left: 1.0, right: 5.0, bounds: "[]"))
+      4.0
+
+      # Exactly one point contained in  this continuous interval,
+      # so technically not empty, but it also has zero  size.
+      iex> size(new(left: 1.0, right: 1.0, bounds: "[]"))
+      0.0
+
+      # Empty continuous interval
+      iex> size(new(left: 1.0, right: 1.0, bounds: "()"))
+      0.0
+
+  """
+  @spec size(t(), unit :: any()) :: any()
+  def size(%__MODULE__{} = a, unit \\ nil) do
+    cond do
+      unbounded_left?(a) ->
+        nil
+
+      unbounded_right?(a) ->
+        nil
+
+      true ->
+        case unit do
+          nil -> Point.subtract(a.right.point, a.left.point)
+          unit -> Point.subtract(a.right.point, a.left.point, unit)
+        end
+    end
+  end
 
   @doc """
   Is `a` strictly left of `b`.
@@ -739,7 +871,7 @@ defmodule Interval do
         # It should always be true, so no point in checking:
         true == strictly_left_of?(a, b) or strictly_right_of?(a, b)
 
-        into_empty(a)
+        normalized_empty(a)
     end
   end
 
@@ -809,7 +941,7 @@ defmodule Interval do
       # if A and B doesn't overlap,
       # then there can be no intersection
       not overlaps?(a, b) ->
-        into_empty(a)
+        normalized_empty(a)
 
       # otherwise, we can compute the intersection:
       true ->
@@ -879,7 +1011,21 @@ defmodule Interval do
   defp unpack_bounds("[)"), do: {:inclusive, :exclusive}
   defp unpack_bounds("(]"), do: {:exclusive, :inclusive}
 
-  defp into_empty(interval) do
-    %{interval | left: :empty, right: :empty}
+  defp normalized_empty(%__MODULE__{left: left, right: right} = a) do
+    point =
+      case {left, right} do
+        {%Endpoint{point: point}, _} ->
+          Point.zero(point)
+
+        {_, %Endpoint{point: point}} ->
+          Point.zero(point)
+
+        {:unbounded, :unbounded} ->
+          raise "cannot convert unbounded interval into empty interval"
+      end
+
+    endpoint = Endpoint.new(point, :exclusive)
+
+    %{a | left: endpoint, right: endpoint}
   end
 end

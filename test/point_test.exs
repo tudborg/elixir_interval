@@ -16,4 +16,14 @@ defmodule IntervalPointTest do
     assert Interval.Point.max(1, 2) === 2
     assert Interval.Point.max(1.0, 2.0) === 2.0
   end
+
+  test "subtract/3" do
+    assert Interval.Point.subtract(3, 2) === 1
+    assert Interval.Point.subtract(3.0, 2.0) === 1.0
+  end
+
+  test "add/3" do
+    assert Interval.Point.add(2, 1) === 3
+    assert Interval.Point.add(2.0, 1.0) === 3.0
+  end
 end
