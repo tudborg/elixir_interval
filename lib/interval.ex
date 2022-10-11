@@ -29,12 +29,14 @@ defmodule Interval do
   the atom `:unbounded`.
 
   """
-  @type t() :: %__MODULE__{
+  @type t(point) :: %__MODULE__{
           # Left endpoint
-          left: :unbounded | Interval.Endpoint.t(),
+          left: :unbounded | Interval.Endpoint.t(point),
           # Right  endpoint
-          right: :unbounded | Interval.Endpoint.t()
+          right: :unbounded | Interval.Endpoint.t(point)
         }
+
+  @type t() :: t(any())
 
   @doc """
   Create a new Interval containing a single point.

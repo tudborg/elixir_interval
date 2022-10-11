@@ -7,7 +7,10 @@ defmodule Interval.Endpoint do
 
   alias Interval.Point
 
-  @type t() :: %__MODULE__{}
+  @type t(point_t) :: %__MODULE__{
+          inclusive: boolean(),
+          point: point_t
+        }
   defstruct inclusive: nil, point: nil
 
   @doc """
