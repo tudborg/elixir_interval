@@ -96,4 +96,30 @@ defprotocol Interval.Point do
   """
   @spec max(t(), t()) :: t()
   def max(a, b)
+
+  @doc """
+  subtract `b` from `a`, returning the value
+  in a unit that is relevant for the given point type.
+  An optional argument `unit` can be specified if the point type
+  has multiple units of relevance.
+
+  The supported units are implementation specific.
+  """
+  @spec subtract(t(), t()) :: any()
+  def subtract(a, b, unit \\ nil)
+
+  @doc """
+  Add `value_to_add` to `a`.
+  `value_to_add` is in the `unit` given as third argument.
+
+  The supported units are implementation specific,
+  however they should mirror the available units of `subtract/3`,
+  such that
+
+      iex> add(b, subtract(a, b)) == a
+
+  and the default uni of `subtract/3` must also be the
+  default unit of `add/3`
+  """
+  def add(a, value_to_add, unit \\ nil)
 end

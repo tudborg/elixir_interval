@@ -314,6 +314,96 @@ defmodule Interval do
   def inclusive_right?(%__MODULE__{}), do: false
 
   @doc """
+  Return the "size" of the interval.
+  The returned value depends on the Point implementation used.
+
+  - If the interval is unbounded, this function returns `nil`.
+  - If the inteval is empty, this function returns `nil`.
+
+  > #### Warning {: .warning}
+  > The reason for returning `nil` when the interval is empty, is that
+  > we do not currently know the point type of an empty interval, and cannot
+  > return a "zero" value for it.
+  > This might change in the future, where `size/2` will consistently return
+  > the "zero" value for the given point type.
+
+  > #### Note {: .info}
+  > The size is implemented as `right - left`, ignoring inclusive/exclusive bounds.
+  > This works for discrete intervals because they are always normalized to `[)`.
+  > The implementation is the same for continuous intervals, but here we
+  > completely ignore the bounds, so the size of `(1.0, 3.0)` is exactly the same
+  > as the size of `[1.0, 3.0]`.
+
+  A second argument `unit` can be given to this function, which in turn
+  is handed to the call to `Interval.Point.subtract/3`, to return the difference
+  between the two points in the desired unit.
+
+  The default value for `unit` is Point implementation specific.
+
+  These are the default returned sizes for the built-in implementations:
+
+  - `Date` - days (integer)
+  - `DateTime` - seconds (integer)
+  - `Integer` - integer
+  - `Float` - float
+
+  ## For Discrete Intervals
+
+  For discrete point types, the size represents the number of elements the
+  interval contains (or `nil`, when empty).
+
+  I.e. for `Date` the size is the number of `Date` structs the interval
+  can be said to "contain" (aka. number of days)
+
+  ### Examples
+        
+      # This interval is empty, so the reported size is nil
+      iex> size(new(left: 1, right: 1, bounds: "()"))
+      nil
+      
+      iex> size(new(left: 1, right: 1, bounds: "[]"))
+      1
+
+      iex> size(new(left: 1, right: 3, bounds: "[)"))
+      2
+
+  ## For Continuous Intervals
+
+  For continuous intervals, the size is reported as the difference
+  between the left and right points.
+
+  ### Examples
+
+      # The size of the interval `[1.0, 5.0)` is also 4:
+      iex> size(new(left: 1.0, right: 5.0, bounds: "[)"))
+      4.0
+    
+      # And likewise, so is the size of `[1.0, 5.0]` (note the bound change)
+      iex> size(new(left: 1.0, right: 5.0, bounds: "[]"))
+      4.0
+    
+  """
+  @spec size(t(), unit :: any()) :: any()
+  def size(%__MODULE__{} = a, unit \\ nil) do
+    cond do
+      empty?(a) ->
+        nil
+
+      unbounded_left?(a) ->
+        nil
+
+      unbounded_right?(a) ->
+        nil
+
+      true ->
+        case unit do
+          nil -> Point.subtract(a.right.point, a.left.point)
+          unit -> Point.subtract(a.right.point, a.left.point, unit)
+        end
+    end
+  end
+
+  @doc """
   Is `a` strictly left of `b`.
 
   `a` is strictly left of `b` if no point in `a` is in `b`,
