@@ -53,7 +53,13 @@ Interval.intersection(y2022, x)
 
 ## Changelog
 
+### HEAD
+
+- Empty intervals are now represented by two identical exclusive points. 
+- Added `Interval.size/2`.
+- Added parameterized typespec `t:Interval.t/1`
+
 ### v0.1.2
 
-Fixed a correctness bug in intersection, where intersections between
-intervals containing unbounded endpoints would be incorrectly computed.
+- Fixed a correctness bug in intersection, where intersections between
+  intervals containing unbounded endpoints would be incorrectly computed.

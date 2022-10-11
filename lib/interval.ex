@@ -25,7 +25,7 @@ defmodule Interval do
   representing the left (lower) and right (upper) points
   in the interval.
 
-  The endpoints are stored as an `t:Interval.Endpoint.t/0` or
+  The endpoints are stored as an `t:Interval.Endpoint.t/1` or
   the atom `:unbounded`.
 
   """
