@@ -86,6 +86,21 @@ defmodule IntervalTest do
     assert Interval.empty?(inter(1, 2, "()"))
     # but (1,3) should be non-empty because 2 is in the interval
     refute Interval.empty?(inter(1, 3, "()"))
+
+    # Check that even non-normalized intervals correctly indicates empty
+    non_normalized_1 = %Interval{
+      left: %Endpoint{inclusive: false, point: 1},
+      right: %Endpoint{inclusive: false, point: 2}
+    }
+
+    assert Interval.empty?(non_normalized_1)
+
+    non_normalized_2 = %Interval{
+      left: %Endpoint{inclusive: false, point: 1},
+      right: %Endpoint{inclusive: true, point: 1}
+    }
+
+    assert Interval.empty?(non_normalized_2)
   end
 
   test "inclusive_left?/1" do

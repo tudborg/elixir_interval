@@ -81,5 +81,7 @@ if Application.get_env(:interval, Date, true) do
     def add(a, days, _unit \\ nil) do
       Date.add(a, days)
     end
+
+    def zero(_), do: ~D[0000-01-01]
   end
 end

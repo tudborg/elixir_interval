@@ -105,7 +105,7 @@ defprotocol Interval.Point do
 
   The supported units are implementation specific.
   """
-  @spec subtract(t(), t()) :: any()
+  @spec subtract(t(), t(), unit :: any()) :: any()
   def subtract(a, b, unit \\ nil)
 
   @doc """
@@ -121,5 +121,14 @@ defprotocol Interval.Point do
   and the default uni of `subtract/3` must also be the
   default unit of `add/3`
   """
+  @spec add(t(), value :: any(), unit :: any()) :: t()
   def add(a, value_to_add, unit \\ nil)
+
+  @doc """
+  Returns the "zero" value for this point type.
+  This is used provide the point value used for
+  empty intervals.
+  """
+  @spec zero(t()) :: t()
+  def zero(a)
 end

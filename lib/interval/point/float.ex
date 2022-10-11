@@ -59,5 +59,7 @@ if Application.get_env(:interval, Float, true) do
     def add(a, value, _unit \\ nil) do
       a + value
     end
+
+    def zero(_), do: 0.0
   end
 end

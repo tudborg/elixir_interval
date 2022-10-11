@@ -81,5 +81,7 @@ if Application.get_env(:interval, DateTime, true) do
     def add(a, value_to_add, unit \\ :second) do
       DateTime.add(a, value_to_add, unit)
     end
+
+    def zero(_), do: ~U[0000-01-01 00:00:00Z]
   end
 end

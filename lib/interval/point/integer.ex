@@ -59,5 +59,7 @@ if Application.get_env(:interval, Integer, true) do
     def add(a, value, _unit \\ nil) do
       a + value
     end
+
+    def zero(_), do: 0
   end
 end
