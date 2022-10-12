@@ -6,10 +6,110 @@ defmodule Interval do
   The empty interval is never contained in any other interval,
   and contains itself no points.
 
-  It can also be left and/or right unbounded, in which case
+  It can be left and/or right unbounded, in which case
   it contains all points in the unbounded direction.
   A fully unbounded interval contains all other intervals, except
   the empty interval.
+
+  ## Interval Notation
+
+  Throughout the documentation and comments, you'll see a notation for
+  writing about intervals.
+  As this library is inspired by the functionality in PostgreSQL's range types,
+  we also borrow it's notation (https://www.postgresql.org/docs/current/rangetypes.html)
+  with the exception that we write the normalised empty interval as `(0,0)`.
+
+      [left-inclusive, right-inclusive]
+      (left-exclusive, right-exclusive)
+      [left-inclusive, right-exclusive)
+      (left-exclusive, right-inclusive]
+      (0,0)
+
+  An unbounded interval is written by omitting the bound type and point:
+
+      ,right-exclusive)
+      [left-inclusive,
+
+  When specifying bound types we sometimes leave the point out and just write
+  the left and right bounds:
+
+      []
+      ()
+      (]
+      [)
+      (
+      )
+      [
+      ]
+
+  ## Types of Interval
+
+  This library ships with a few different types of intervals.
+  The built-in intervals are intervals for
+
+  - `Date`
+  - `DateTime`
+  - `Float`
+  - `Integer`
+
+  However, you can quite easily implement an interval using your own
+  point types, by implementing the `Interval.Point` protocol.
+
+  The `Interval.Point` protocols defines a few handfuls of functions
+  you'll need to define on your struct to be able to use it as a point
+  in the interval.
+
+  An obvious usecase for this would be to implement an interval that works
+  with the https://hexdocs.pm/decimal library.
+
+  ## Discrete vs Continuous intervals
+
+  Depending on the type of point used, an interval is either said to be
+  discrete or continuous.
+
+  A discrete interval represents a set of finite points (like integers or dates).
+  A continuous can be said to represent the infinite number of points between
+  two endpoints (like float and datetime).
+
+  With discrete points, it is possible to define what the next and previous
+  point is, and we normalise these intervals to the bound type `[)`.  
+  The only exception is the empty interval, which is still represented as
+  the exclusive bounded zero point. For integers that would be `(0,0)`.
+
+  The distinction between discrete and continuous intervals is important
+  because the two behave slightly differently in some of the libraries functions.
+  E.g. A discrete interval is adjacent to another discrete interval, if there
+  is no points between the two interval.  
+  Contrast this to continuous intervals like real numbers where there is always
+  an infinite number of real numbers between two distinct real numbers,
+  and so continuous intervals are only said to be adjacent to each other
+  if they include the same point, and one point is inclusive where the other
+  is exclusive.
+
+  Where relevant, the function documentation will mention the differences
+  between discrete and continuous intervals.
+
+  ## Create an Interval
+
+  See `new/1`.
+
+  ## Normalization
+
+  When creating an interval through `new/1`, it will get normalized
+  so that intervals that represents the same exact same points,
+  are also represented in the same way in the struct.
+  This allows you to compare two intervals for equality by using `==`
+  (and using pattern matching).
+
+  It is therefore not recommended to modify an `Interval` struct directly,
+  but instead do so by using one of the functions that modify the interval.
+
+  An interval is said to be empty if it spans zero points.
+  We represent the empty interval as an exclusive interval in between
+  two "zero points".  
+  Any empty interval will be normalized to this `(0,0)` interval.
+  see `Interval.Point.zero/1` for details on what a zero point is.
+
   """
 
   alias Interval.Point

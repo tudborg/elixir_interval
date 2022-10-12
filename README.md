@@ -7,6 +7,8 @@
 Datatype and operations for both discrete and continuous intervals,
 Inspired by [PostgreSQL's range types](https://www.postgresql.org/docs/current/rangetypes.html).
 
+Find the documentation at https://hexdocs.pm/interval/
+
 
 ## Installation
 
@@ -15,10 +17,11 @@ The package can be installed by adding `interval` to your list of dependencies i
 ```elixir
 def deps do
   [
-    {:interval, "~> 0.1.2"}
+    {:interval, "~> 0.1.3"}
   ]
 end
 ```
+
 
 ## Examples
 
@@ -53,8 +56,10 @@ Interval.intersection(y2022, x)
 
 ## Changelog
 
-### HEAD
+### v0.1.3
 
+- Fixed a bug in `Interval.intersection/2` and `Interval.union/2` that causes incorrect bounds
+  in some cases.
 - The internal `Endpoint` struct has been replaced by a simple 2-tuple.
 - Empty intervals are now represented by two identical exclusive points. 
 - Added `Interval.size/2`.
