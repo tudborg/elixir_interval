@@ -843,8 +843,8 @@ defmodule Interval do
 
       # if a and b overlap or are adjacent, we can union the intervals
       overlaps?(a, b) or adjacent_left_of?(a, b) or adjacent_right_of?(a, b) ->
-        left = min_endpoint(a.left, b.left, :prefer_unbounded)
-        right = max_endpoint(a.right, b.right, :prefer_unbounded)
+        left = pick_union_left(a.left, b.left)
+        right = pick_union_right(a.right, b.right)
 
         from_endpoints(left, right)
 
@@ -929,10 +929,12 @@ defmodule Interval do
       not overlaps?(a, b) ->
         normalized_empty(a)
 
-      # otherwise, we can compute the intersection:
+      # otherwise, we can compute the intersection
       true ->
-        left = max_endpoint(a.left, b.left, :prefer_bounded)
-        right = min_endpoint(a.right, b.right, :prefer_bounded)
+        # The intersection between `a` and `b` is the points that exist in
+        # both `a` and `b`.
+        left = pick_intersection_left(a.left, b.left)
+        right = pick_intersection_right(a.right, b.right)
         from_endpoints(left, right)
     end
   end
@@ -940,47 +942,64 @@ defmodule Interval do
   ##
   ## Helpers
   ##
-  defp min_endpoint(:unbounded, _b, :prefer_unbounded), do: :unbounded
-  defp min_endpoint(_a, :unbounded, :prefer_unbounded), do: :unbounded
-  defp min_endpoint(:unbounded, b, :prefer_bounded), do: b
-  defp min_endpoint(a, :unbounded, :prefer_bounded), do: a
 
-  defp min_endpoint(a, b, _) do
+  # Pick the exclusive endpoint if it exists, else pick `a`
+  defp pick_exclusive({:exclusive, _} = a, _), do: a
+  defp pick_exclusive(_, {:exclusive, _} = b), do: b
+  defp pick_exclusive(a, _b), do: a
+
+  # Pick the inclusive endpoint if it exists, else pick `a`
+  defp pick_inclusive({:inclusive, _} = a, _), do: a
+  defp pick_inclusive(_, {:inclusive, _} = b), do: b
+  defp pick_inclusive(a, _b), do: a
+
+  # Pick the left point of a union from two left points
+  defp pick_union_left(:unbounded, _), do: :unbounded
+  defp pick_union_left(_, :unbounded), do: :unbounded
+
+  defp pick_union_left(a, b) do
     case Point.compare(point(a), point(b)) do
-      :gt ->
-        b
-
-      :eq ->
-        case {inclusive?(a), inclusive?(b)} do
-          {true, _} -> a
-          {_, true} -> b
-          _ -> a
-        end
-
-      :lt ->
-        a
+      :gt -> b
+      :lt -> a
+      :eq -> pick_inclusive(a, b)
     end
   end
 
-  defp max_endpoint(:unbounded, _b, :prefer_unbounded), do: :unbounded
-  defp max_endpoint(_a, :unbounded, :prefer_unbounded), do: :unbounded
-  defp max_endpoint(:unbounded, b, :prefer_bounded), do: b
-  defp max_endpoint(a, :unbounded, :prefer_bounded), do: a
+  # Pick the right point of a union from two right points
+  defp pick_union_right(:unbounded, _), do: :unbounded
+  defp pick_union_right(_, :unbounded), do: :unbounded
 
-  defp max_endpoint(a, b, _) do
+  defp pick_union_right(a, b) do
     case Point.compare(point(a), point(b)) do
-      :gt ->
-        a
+      :gt -> a
+      :lt -> b
+      :eq -> pick_inclusive(a, b)
+    end
+  end
 
-      :eq ->
-        case {inclusive?(a), inclusive?(b)} do
-          {true, _} -> a
-          {_, true} -> b
-          _ -> a
-        end
+  # Pick the left point of a intersection from two left points
+  defp pick_intersection_left(:unbounded, :unbounded), do: :unbounded
+  defp pick_intersection_left(a, :unbounded), do: a
+  defp pick_intersection_left(:unbounded, b), do: b
 
-      :lt ->
-        b
+  defp pick_intersection_left(a, b) do
+    case Point.compare(point(a), point(b)) do
+      :gt -> a
+      :lt -> b
+      :eq -> pick_exclusive(a, b)
+    end
+  end
+
+  # Pick the right point of a intersection from two right points
+  defp pick_intersection_right(:unbounded, :unbounded), do: :unbounded
+  defp pick_intersection_right(a, :unbounded), do: a
+  defp pick_intersection_right(:unbounded, b), do: b
+
+  defp pick_intersection_right(a, b) do
+    case Point.compare(point(a), point(b)) do
+      :gt -> b
+      :lt -> a
+      :eq -> pick_exclusive(a, b)
     end
   end
 
@@ -1021,10 +1040,6 @@ defmodule Interval do
 
   @compile {:inline, point: 1}
   defp point({_, point}), do: point
-
-  @compile {:inline, inclusive?: 1}
-  defp inclusive?({:inclusive, _}), do: true
-  defp inclusive?(_), do: false
 
   # Left is bounded and has a point
   defp assert_normalized_bounds(%{left: {_, point}} = a) do

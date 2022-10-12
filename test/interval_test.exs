@@ -95,6 +95,9 @@ defmodule IntervalTest do
     assert Interval.empty?(inter(1, 1, "()"))
     # [1,1] should not be empty
     refute Interval.empty?(inter(1, 1, "[]"))
+    # [1,1) and (1,1] normalises to empty
+    assert Interval.empty?(inter(1, 1, "[)"))
+    assert Interval.empty?(inter(1, 1, "(]"))
 
     # Integer interval "(1,2)" should be empty
     # because neither 1 or 2 is in the interval,
@@ -252,10 +255,13 @@ defmodule IntervalTest do
     # testing min_endpoint and max_endpoint
     assert Interval.intersection(inter(2.0, 3.0, "[]"), inter(2.0, 3.0, "[]")) ===
              inter(2.0, 3.0, "[]")
+
     assert Interval.intersection(inter(2.0, 3.0, "()"), inter(2.0, 3.0, "()")) ===
              inter(2.0, 3.0, "()")
+
     assert Interval.intersection(inter(2.0, 3.0, "()"), inter(2.0, 3.0, "[]")) ===
              inter(2.0, 3.0, "()")
+
     assert Interval.intersection(inter(2.0, 3.0, "()"), inter(2.0, 3.0, "(]")) ===
              inter(2.0, 3.0, "()")
   end
@@ -279,10 +285,10 @@ defmodule IntervalTest do
   end
 
   test "intersection regression 2022-10-12 - incorrect bounds" do
-    # bad code wanted this intersection to be [2.0,3.0]
+    # The bad code wanted this intersection to be [2.0,3.0], but it should be [2.0,3.0)
     assert Interval.intersection(
-      inter(2.0, 3.0, "[)"),
-      inter(2.0, 3.0, "[]")
-      ) === inter(2.0, 3.0, "[)")
+             inter(2.0, 3.0, "[)"),
+             inter(2.0, 3.0, "[]")
+           ) === inter(2.0, 3.0, "[)")
   end
 end
