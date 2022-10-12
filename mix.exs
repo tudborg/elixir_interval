@@ -8,7 +8,7 @@ defmodule Interval.MixProject do
     [
       app: :interval,
       description: """
-      Interval / range operations over any data type.
+      Interval / range operations on DateTime, Integer, Float and anything else.
       """,
       version: @version,
       elixir: "~> 1.11",
@@ -37,7 +37,10 @@ defmodule Interval.MixProject do
       # homepage_url: "https://github.com/tbug/interval_elixir",
       docs: [
         main: "Interval",
-        extras: ["README.md"]
+        extras: [
+          "README.md",
+          "CHANGELOG.md"
+        ]
       ]
     ]
   end

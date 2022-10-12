@@ -538,6 +538,7 @@ defmodule Interval do
       0.0
 
   """
+  @doc since: "0.1.3"
   @spec size(t(), unit :: any()) :: any()
   def size(a, unit \\ nil)
   def size(%__MODULE__{left: :unbounded}, _unit), do: nil
