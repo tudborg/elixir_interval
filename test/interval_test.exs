@@ -273,6 +273,30 @@ defmodule IntervalTest do
     assert Interval.intersection(a, b) === a
   end
 
+  test "contains_point?/2" do
+    refute Interval.contains_point?(inter(1, 2), 0)
+    assert Interval.contains_point?(inter(1, 2), 1)
+    refute Interval.contains_point?(inter(1, 2), 2)
+    refute Interval.contains_point?(inter(1, 2), 3)
+
+    assert Interval.contains_point?(inter(nil, 2), 0)
+    assert Interval.contains_point?(inter(nil, 2), 1)
+    refute Interval.contains_point?(inter(nil, 2), 2)
+    refute Interval.contains_point?(inter(nil, 2), 3)
+
+    refute Interval.contains_point?(inter(1, nil), 0)
+    assert Interval.contains_point?(inter(1, nil), 1)
+    assert Interval.contains_point?(inter(1, nil), 2)
+  end
+
+  test "partition/2" do
+    assert Interval.partition(inter(1, 4), 2) === [inter(1, 2), inter(2), inter(3)]
+    assert Interval.partition(inter(1, 4), 1) === [inter(0, 0), inter(1, 2), inter(2, 4)]
+    assert Interval.partition(inter(1, 4), 3) === [inter(1, 3), inter(3), inter(0, 0)]
+    assert Interval.partition(inter(1, 4), 0) === []
+    assert Interval.partition(inter(1, 4), 4) === []
+  end
+
   test "contains/2 regression 2022-10-07 - `,1)` failed to contain `[0,1)`" do
     a = %Interval{left: :unbounded, right: {:exclusive, 1}}
 

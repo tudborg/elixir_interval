@@ -16,8 +16,11 @@ defmodule Interval do
   Throughout the documentation and comments, you'll see a notation for
   writing about intervals.
   As this library is inspired by the functionality in PostgreSQL's range types,
-  we also borrow it's notation (https://www.postgresql.org/docs/current/rangetypes.html)
+  we align ourselves with it's  notation choice and borrow it
+  (https://www.postgresql.org/docs/current/rangetypes.html)
   with the exception that we write the normalised empty interval as `(0,0)`.
+
+  This notation is also described in ISO 31-11.
 
       [left-inclusive, right-inclusive]
       (left-exclusive, right-exclusive)
@@ -902,6 +905,40 @@ defmodule Interval do
   end
 
   @doc """
+  Does `a` contain the point `x`?
+
+  ## Examples
+
+      iex> contains_point?(new(left: 1, right: 2), 0)
+      false
+
+      iex> contains_point?(new(left: 1, right: 2), 1)
+      true
+  """
+  @doc since: "0.1.4"
+  def contains_point?(%__MODULE__{} = a, x) do
+    with true <- not empty?(a) do
+      contains_left =
+        unbounded_left?(a) or
+          case Point.compare(lpoint(a), x) do
+            :gt -> false
+            :eq -> inclusive_left?(a)
+            :lt -> true
+          end
+
+      contains_right =
+        unbounded_right?(a) or
+          case Point.compare(rpoint(a), x) do
+            :gt -> true
+            :eq -> inclusive_right?(a)
+            :lt -> false
+          end
+
+      contains_left and contains_right
+    end
+  end
+
+  @doc """
   Computes the union of `a` and `b`.
 
   The union contains all of the points that are either in `a` or `b`.
@@ -1037,6 +1074,43 @@ defmodule Interval do
         left = pick_intersection_left(a.left, b.left)
         right = pick_intersection_right(a.right, b.right)
         from_endpoints(left, right)
+    end
+  end
+
+  @doc """
+  Partition an interval `a` into 3 intervals using  `x`:
+
+  - The interval with all points from `a` < `x`
+  - The interval with just `x`
+  - The interval with  all points from `a` > `x`
+
+  If `x` is not in `a` this function returns an empty list.
+
+  ## Examples
+
+      iex> partition(new(left: 1, right: 5, bounds: "[]"), 3)
+      [
+        new(left: 1, right: 3, bounds: "[)"),
+        new(left: 3, right: 3, bounds: "[]"),
+        new(left: 3, right: 5, bounds: "(]")
+      ]
+
+      iex> partition(new(left: 1, right: 5), -10)
+      []
+  """
+  @doc since: "0.1.4"
+  @spec partition(t(), Point.t()) :: [t()] | []
+  def partition(a, x) do
+    case contains_point?(a, x) do
+      false ->
+        []
+
+      true ->
+        [
+          from_endpoints(a.left, {:exclusive, x}),
+          from_endpoints({:inclusive, x}, {:inclusive, x}),
+          from_endpoints({:exclusive, x}, a.right)
+        ]
     end
   end
 
