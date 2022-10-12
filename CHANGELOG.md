@@ -1,8 +1,9 @@
 # Changelog
 
-## HEAD
+## HEAD (v0.1.4)
 
-- 
+- Adding `Interval.contains_point?/2`
+- Adding `Interval.partition/2`
 
 ## v0.1.3
 

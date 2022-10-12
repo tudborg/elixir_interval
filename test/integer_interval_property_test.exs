@@ -2,6 +2,9 @@ defmodule Interval.IntegerIntervalPropertyTest do
   use ExUnit.Case
   use ExUnitProperties
 
+  alias Interval
+  alias Interval.Point
+
   property "overlaps?/2 is commutative" do
     check all(
             a <- Helper.integer_interval(),
@@ -51,7 +54,7 @@ defmodule Interval.IntegerIntervalPropertyTest do
     end
   end
 
-  property "contains?/2" do
+  property "contains?/2 & contains_point?/2" do
     check all(
             a <- Helper.integer_interval(),
             b <- Helper.integer_interval()
@@ -65,6 +68,22 @@ defmodule Interval.IntegerIntervalPropertyTest do
           assert Interval.contains?(a, b)
           assert Interval.contains?(b, a)
 
+          if not Interval.unbounded_left?(b) do
+            assert Interval.contains_point?(a, elem(b.left, 1))
+          end
+
+          if not Interval.unbounded_right?(b) do
+            assert Interval.contains_point?(a, elem(b.right, 1))
+          end
+
+          if not Interval.unbounded_left?(a) do
+            assert Interval.contains_point?(b, elem(a.left, 1))
+          end
+
+          if not Interval.unbounded_right?(a) do
+            assert Interval.contains_point?(b, elem(a.right, 1))
+          end
+
         a != b ->
           a_contains_b = Interval.contains?(a, b)
           b_contains_a = Interval.contains?(b, a)
@@ -74,6 +93,30 @@ defmodule Interval.IntegerIntervalPropertyTest do
               (b_contains_a and not a_contains_b) or
               (not a_contains_b and not b_contains_a)
           )
+
+          if a_contains_b do
+            case b.left do
+              :unbounded -> :ok
+              {:inclusive, p} -> assert Interval.contains_point?(a, p)
+            end
+
+            case b.right do
+              :unbounded -> :ok
+              {:exclusive, p} -> assert Interval.contains_point?(a, Point.previous(p))
+            end
+          end
+
+          if b_contains_a do
+            case a.left do
+              :unbounded -> :ok
+              {:inclusive, p} -> assert Interval.contains_point?(b, p)
+            end
+
+            case a.right do
+              :unbounded -> :ok
+              {:exclusive, p} -> assert Interval.contains_point?(b, Point.previous(p))
+            end
+          end
       end
     end
   end

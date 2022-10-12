@@ -287,6 +287,10 @@ defmodule IntervalTest do
     refute Interval.contains_point?(inter(1, nil), 0)
     assert Interval.contains_point?(inter(1, nil), 1)
     assert Interval.contains_point?(inter(1, nil), 2)
+
+    refute Interval.contains_point?(inter(1, 1), 0)
+    refute Interval.contains_point?(inter(1, 1), 1)
+    refute Interval.contains_point?(inter(1, 1), 2)
   end
 
   test "partition/2" do
