@@ -18,7 +18,7 @@ defmodule Interval do
   As this library is inspired by the functionality in PostgreSQL's range types,
   we also borrow it's notation (https://www.postgresql.org/docs/current/rangetypes.html)
   with the exception that we write the normalised empty interval as `(0,0)`.
-  
+
       [left-inclusive, right-inclusive]
       (left-exclusive, right-exclusive)
       [left-inclusive, right-exclusive)
@@ -29,7 +29,7 @@ defmodule Interval do
 
       ,right-exclusive)
       [left-inclusive,
-  
+
   When specifying bound types we sometimes leave the point out and just write
   the left and right bounds:
 
@@ -94,7 +94,7 @@ defmodule Interval do
   See `new/1`.
 
   ## Normalization
-  
+
   When creating an interval through `new/1`, it will get normalized
   so that intervals that represents the same exact same points,
   are also represented in the same way in the struct.
