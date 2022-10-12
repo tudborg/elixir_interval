@@ -45,8 +45,8 @@ x = Interval.new(left: ~U[2018-07-01 00:00:00Z], right: ~U[2022-03-01 00:00:00Z]
 Interval.intersection(y2022, x)
 
 # %Interval{
-#   left: %Interval.Endpoint{inclusive: true, point: ~U[2022-01-01 00:00:00Z]},
-#   right: %Interval.Endpoint{inclusive: false, point: ~U[2022-03-01 00:00:00Z]}
+#   left: {:inclusive, ~U[2022-01-01 00:00:00Z]},
+#   right: {:exclusive, ~U[2022-03-01 00:00:00Z]}
 # }
 ```
 
@@ -55,6 +55,7 @@ Interval.intersection(y2022, x)
 
 ### HEAD
 
+- The internal `Endpoint` struct has been replaced by a simple 2-tuple.
 - Empty intervals are now represented by two identical exclusive points. 
 - Added `Interval.size/2`.
 - Added parameterized typespec `t:Interval.t/1`

@@ -1,8 +1,6 @@
 defmodule IntervalTest do
   use ExUnit.Case
 
-  alias Interval.Endpoint
-
   doctest Interval, import: true
 
   defp inter(p), do: Interval.single(p)
@@ -66,12 +64,30 @@ defmodule IntervalTest do
     end
 
     # if left > right, raises
-    left = Endpoint.new(2, :inclusive)
-    right = Endpoint.new(1, :inclusive)
+    left = {:inclusive, 2}
+    right = {:inclusive, 1}
 
     assert_raise RuntimeError, fn ->
       Interval.from_endpoints(left, right)
     end
+  end
+
+  test "size/1" do
+    # size of  unbounded intervals is  nil
+    assert nil === Interval.size(inter(nil, nil))
+    assert nil === Interval.size(inter(nil, 1))
+    assert nil === Interval.size(inter(1, nil))
+
+    # size of bounded intervals
+    assert 1 === Interval.size(inter(1, 2))
+    assert 1.0 === Interval.size(inter(1.0, 2.0))
+
+    # specifying units
+    assert 31 === Interval.size(inter(~D[2021-01-01], ~D[2021-02-01]))
+    assert 31 === Interval.size(inter(~D[2021-01-01], ~D[2021-02-01]), nil)
+
+    assert 31 * 86_400 ===
+             Interval.size(inter(~U[2021-01-01 00:00:00Z], ~U[2021-02-01 00:00:00Z]), :second)
   end
 
   test "empty?/1" do
@@ -89,15 +105,15 @@ defmodule IntervalTest do
 
     # Check that even non-normalized intervals correctly indicates empty
     non_normalized_1 = %Interval{
-      left: %Endpoint{inclusive: false, point: 1},
-      right: %Endpoint{inclusive: false, point: 2}
+      left: {:exclusive, 1},
+      right: {:exclusive, 2}
     }
 
     assert Interval.empty?(non_normalized_1)
 
     non_normalized_2 = %Interval{
-      left: %Endpoint{inclusive: false, point: 1},
-      right: %Endpoint{inclusive: true, point: 1}
+      left: {:exclusive, 1},
+      right: {:inclusive, 1}
     }
 
     assert Interval.empty?(non_normalized_2)
@@ -212,11 +228,11 @@ defmodule IntervalTest do
   end
 
   test "contains/2 regression 2022-10-07 - `,1)` failed to contain `[0,1)`" do
-    a = %Interval{left: :unbounded, right: %Interval.Endpoint{inclusive: false, point: 1}}
+    a = %Interval{left: :unbounded, right: {:exclusive, 1}}
 
     b = %Interval{
-      left: %Interval.Endpoint{inclusive: true, point: 0},
-      right: %Interval.Endpoint{inclusive: false, point: 1}
+      left: {:inclusive, 0},
+      right: {:exclusive, 1}
     }
 
     assert Interval.contains?(a, b)
