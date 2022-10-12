@@ -571,24 +571,17 @@ defmodule Interval do
         not empty?(b)
 
     with true <- prerequisite do
-      case Point.type(rpoint(a)) do
-        :discrete ->
-          check =
-            inclusive_right?(a) != inclusive_left?(b) and
-              Point.compare(rpoint(a), lpoint(b)) == :eq
+      # Assuming we've normalized both a and b,
+      # if the point types are discrete, and and normalized to `[)`
+      # then continuous and discrete intervals are checked in the same way.
+      # To ensure we don't give the wrong answer though,
+      # we have an assertion that that a discrete point type must be
+      # bounded as `[)`:
+      assert_normalized_bounds(a)
+      assert_normalized_bounds(b)
 
-          # NOTE: Don't think this is needed when we also
-          # normalize discrete values to [)
-          next_check =
-            inclusive_right?(a) and inclusive_left?(b) and
-              Point.compare(Point.next(rpoint(a)), lpoint(b)) == :eq
-
-          check or next_check
-
-        :continuous ->
-          inclusive_right?(a) != inclusive_left?(b) and
-            Point.compare(rpoint(a), lpoint(b)) == :eq
-      end
+      inclusive_right?(a) != inclusive_left?(b) and
+        Point.compare(rpoint(a), lpoint(b)) == :eq
     end
   end
 
@@ -633,24 +626,17 @@ defmodule Interval do
         not empty?(b)
 
     with true <- prerequisite do
-      case Point.type(lpoint(a)) do
-        :discrete ->
-          check =
-            inclusive_left?(a) != inclusive_right?(b) and
-              Point.compare(lpoint(a), rpoint(b)) == :eq
+      # Assuming we've normalized both a and b,
+      # if the point types are discrete, and and normalized to `[)`
+      # then continuous and discrete intervals are checked in the same way.
+      # To ensure we don't give the wrong answer though,
+      # we have an assertion that that a discrete point type must be
+      # bounded as `[)`:
+      assert_normalized_bounds(a)
+      assert_normalized_bounds(b)
 
-          # NOTE: Don't think this is needed when we also
-          # normalize discrete values to [)
-          next_check =
-            inclusive_left?(a) and inclusive_right?(b) and
-              Point.compare(Point.previous(lpoint(a)), rpoint(b)) == :eq
-
-          check or next_check
-
-        :continuous ->
-          Point.compare(lpoint(a), rpoint(b)) == :eq and
-            inclusive_left?(a) != inclusive_right?(b)
-      end
+      Point.compare(lpoint(a), rpoint(b)) == :eq and
+        inclusive_left?(a) != inclusive_right?(b)
     end
   end
 
@@ -857,8 +843,8 @@ defmodule Interval do
 
       # if a and b overlap or are adjacent, we can union the intervals
       overlaps?(a, b) or adjacent_left_of?(a, b) or adjacent_right_of?(a, b) ->
-        left = min_endpoint(a.left, b.left, :prefer_unbounded)
-        right = max_endpoint(a.right, b.right, :prefer_unbounded)
+        left = pick_union_left(a.left, b.left)
+        right = pick_union_right(a.right, b.right)
 
         from_endpoints(left, right)
 
@@ -943,10 +929,12 @@ defmodule Interval do
       not overlaps?(a, b) ->
         normalized_empty(a)
 
-      # otherwise, we can compute the intersection:
+      # otherwise, we can compute the intersection
       true ->
-        left = max_endpoint(a.left, b.left, :prefer_bounded)
-        right = min_endpoint(a.right, b.right, :prefer_bounded)
+        # The intersection between `a` and `b` is the points that exist in
+        # both `a` and `b`.
+        left = pick_intersection_left(a.left, b.left)
+        right = pick_intersection_right(a.right, b.right)
         from_endpoints(left, right)
     end
   end
@@ -954,47 +942,64 @@ defmodule Interval do
   ##
   ## Helpers
   ##
-  defp min_endpoint(:unbounded, _b, :prefer_unbounded), do: :unbounded
-  defp min_endpoint(_a, :unbounded, :prefer_unbounded), do: :unbounded
-  defp min_endpoint(:unbounded, b, :prefer_bounded), do: b
-  defp min_endpoint(a, :unbounded, :prefer_bounded), do: a
 
-  defp min_endpoint(left, right, _) do
-    case Point.compare(point(left), point(right)) do
-      :gt ->
-        right
+  # Pick the exclusive endpoint if it exists, else pick `a`
+  defp pick_exclusive({:exclusive, _} = a, _), do: a
+  defp pick_exclusive(_, {:exclusive, _} = b), do: b
+  defp pick_exclusive(a, _b), do: a
 
-      :eq ->
-        case {inclusive?(left), inclusive?(right)} do
-          {true, _} -> left
-          {_, true} -> right
-          _ -> left
-        end
+  # Pick the inclusive endpoint if it exists, else pick `a`
+  defp pick_inclusive({:inclusive, _} = a, _), do: a
+  defp pick_inclusive(_, {:inclusive, _} = b), do: b
+  defp pick_inclusive(a, _b), do: a
 
-      :lt ->
-        left
+  # Pick the left point of a union from two left points
+  defp pick_union_left(:unbounded, _), do: :unbounded
+  defp pick_union_left(_, :unbounded), do: :unbounded
+
+  defp pick_union_left(a, b) do
+    case Point.compare(point(a), point(b)) do
+      :gt -> b
+      :lt -> a
+      :eq -> pick_inclusive(a, b)
     end
   end
 
-  defp max_endpoint(:unbounded, _b, :prefer_unbounded), do: :unbounded
-  defp max_endpoint(_a, :unbounded, :prefer_unbounded), do: :unbounded
-  defp max_endpoint(:unbounded, b, :prefer_bounded), do: b
-  defp max_endpoint(a, :unbounded, :prefer_bounded), do: a
+  # Pick the right point of a union from two right points
+  defp pick_union_right(:unbounded, _), do: :unbounded
+  defp pick_union_right(_, :unbounded), do: :unbounded
 
-  defp max_endpoint(left, right, _) do
-    case Point.compare(point(left), point(right)) do
-      :gt ->
-        left
+  defp pick_union_right(a, b) do
+    case Point.compare(point(a), point(b)) do
+      :gt -> a
+      :lt -> b
+      :eq -> pick_inclusive(a, b)
+    end
+  end
 
-      :eq ->
-        case {inclusive?(left), inclusive?(right)} do
-          {true, _} -> left
-          {_, true} -> right
-          _ -> left
-        end
+  # Pick the left point of a intersection from two left points
+  defp pick_intersection_left(:unbounded, :unbounded), do: :unbounded
+  defp pick_intersection_left(a, :unbounded), do: a
+  defp pick_intersection_left(:unbounded, b), do: b
 
-      :lt ->
-        right
+  defp pick_intersection_left(a, b) do
+    case Point.compare(point(a), point(b)) do
+      :gt -> a
+      :lt -> b
+      :eq -> pick_exclusive(a, b)
+    end
+  end
+
+  # Pick the right point of a intersection from two right points
+  defp pick_intersection_right(:unbounded, :unbounded), do: :unbounded
+  defp pick_intersection_right(a, :unbounded), do: a
+  defp pick_intersection_right(:unbounded, b), do: b
+
+  defp pick_intersection_right(a, b) do
+    case Point.compare(point(a), point(b)) do
+      :gt -> b
+      :lt -> a
+      :eq -> pick_exclusive(a, b)
     end
   end
 
@@ -1006,9 +1011,6 @@ defmodule Interval do
 
         {_, {_bound, point}} ->
           Point.zero(point)
-
-        {:unbounded, :unbounded} ->
-          raise "cannot convert unbounded interval into empty interval"
       end
 
     endpoint = {:exclusive, point}
@@ -1037,10 +1039,28 @@ defmodule Interval do
   defp lpoint(%{left: left}), do: point(left)
 
   @compile {:inline, point: 1}
-  defp point(:unbounded), do: nil
   defp point({_, point}), do: point
 
-  @compile {:inline, inclusive?: 1}
-  defp inclusive?({:inclusive, _}), do: true
-  defp inclusive?(_), do: false
+  # Left is bounded and has a point
+  defp assert_normalized_bounds(%{left: {_, point}} = a) do
+    assert_normalized_bounds(a, Point.type(point))
+  end
+
+  # right is bounded and has a point
+  defp assert_normalized_bounds(%{right: {_, point}} = a) do
+    assert_normalized_bounds(a, Point.type(point))
+  end
+
+  defp assert_normalized_bounds(a, :discrete) do
+    left_ok = unbounded_left?(a) or inclusive_left?(a)
+    right_ok = unbounded_right?(a) or not inclusive_right?(a)
+
+    if not (left_ok and right_ok) do
+      raise "Discrete intervals should be normalized to the bounds `[)`, but got #{inspect(a)}"
+    end
+  end
+
+  defp assert_normalized_bounds(_a, _) do
+    nil
+  end
 end
