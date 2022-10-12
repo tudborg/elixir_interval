@@ -13,7 +13,6 @@ defmodule Interval do
   """
 
   alias Interval.Point
-  alias Interval.Endpoint
 
   defstruct left: nil, right: nil
 
@@ -24,19 +23,20 @@ defmodule Interval do
   The struct has two fields: `left` and `right`,
   representing the left (lower) and right (upper) points
   in the interval.
-
-  The endpoints are stored as an `t:Interval.Endpoint.t/1` or
-  the atom `:unbounded`.
-
   """
   @type t(point) :: %__MODULE__{
           # Left endpoint
-          left: :unbounded | Interval.Endpoint.t(point),
+          left: :unbounded | {bound(), point},
           # Right  endpoint
-          right: :unbounded | Interval.Endpoint.t(point)
+          right: :unbounded | {bound(), point}
         }
 
+  @typedoc """
+  Shorthand for `t:t(any())`
+  """
   @type t() :: t(any())
+
+  @type bound() :: :inclusive | :exclusive
 
   @doc """
   Create a new Interval containing a single point.
@@ -44,7 +44,7 @@ defmodule Interval do
   def single(point) when not is_list(point) do
     # assert that Point is implemented for given variable
     true = Point.type(point) in [:discrete, :continuous]
-    endpoint = Endpoint.inclusive(point)
+    endpoint = {:inclusive, point}
     from_endpoints(endpoint, endpoint)
   end
 
@@ -64,24 +64,24 @@ defmodule Interval do
       case {left, left_bound} do
         {nil, _} -> :unbounded
         {_, :unbounded} -> :unbounded
-        {_, :inclusive} -> Endpoint.inclusive(left)
-        {_, :exclusive} -> Endpoint.exclusive(left)
+        {_, :inclusive} -> {:inclusive, left}
+        {_, :exclusive} -> {:exclusive, left}
       end
 
     right_endpoint =
       case {right, right_bound} do
         {nil, _} -> :unbounded
         {_, :unbounded} -> :unbounded
-        {_, :inclusive} -> Endpoint.inclusive(right)
-        {_, :exclusive} -> Endpoint.exclusive(right)
+        {_, :inclusive} -> {:inclusive, right}
+        {_, :exclusive} -> {:exclusive, right}
       end
 
     from_endpoints(left_endpoint, right_endpoint)
   end
 
   def from_endpoints(left, right)
-      when (left == :unbounded or is_struct(left, Endpoint)) and
-             (right == :unbounded or is_struct(right, Endpoint)) do
+      when (left == :unbounded or is_tuple(left)) and
+             (right == :unbounded or is_tuple(right)) do
     %__MODULE__{left: left, right: right}
     |> normalize()
   end
@@ -90,9 +90,14 @@ defmodule Interval do
   Normalize an `Interval` struct
   """
   # non-empty non-unbounded Interval:
-  def normalize(%__MODULE__{left: %Endpoint{} = left, right: %Endpoint{} = right} = original) do
-    left_point_impl = Point.impl_for(left.point)
-    right_point_impl = Point.impl_for(right.point)
+  def normalize(
+        %__MODULE__{
+          left: {left_bound, left_point} = left,
+          right: {right_bound, right_point} = right
+        } = original
+      ) do
+    left_point_impl = Point.impl_for(left_point)
+    right_point_impl = Point.impl_for(right_point)
 
     if left_point_impl != right_point_impl do
       raise """
@@ -102,12 +107,10 @@ defmodule Interval do
       """
     end
 
-    type = Point.type(left.point)
-    comp = Point.compare(left.point, right.point)
-    inclusive_left = Endpoint.inclusive?(left)
-    inclusive_right = Endpoint.inclusive?(right)
+    type = Point.type(left_point)
+    comp = Point.compare(left_point, right_point)
 
-    case {type, comp, inclusive_left, inclusive_right} do
+    case {type, comp, left_bound, right_bound} do
       # left > right is an error:
       {_, :gt, _, _} ->
         raise "left > right which is invalid"
@@ -115,15 +118,15 @@ defmodule Interval do
       # intervals given as either (p,p), [p,p) or (p,p]
       # (If you want a single point in an interval, give it as [p,p])
       # The (p,p) interval is already normalize form
-      {_, :eq, false, false} ->
+      {_, :eq, :exclusive, :exclusive} ->
         normalized_empty(original)
 
       # [p,p) and (p,p] is normalized by taking the exlusive endpoint and
       # setting it as both left and right
-      {_, :eq, true, false} ->
+      {_, :eq, :inclusive, :exclusive} ->
         normalized_empty(original)
 
-      {_, :eq, false, true} ->
+      {_, :eq, :exclusive, :inclusive} ->
         normalized_empty(original)
 
       # otherwise, if the point type is continuous, the the orignal
@@ -139,8 +142,8 @@ defmodule Interval do
       # we could still have an empty interval like (1,2)
       # which is the same as (1,1) so we normalize by setting
       # both endpoints to the same value.
-      {:discrete, _, false, false} ->
-        case Point.compare(Point.next(left.point), right.point) do
+      {:discrete, _, :exclusive, :exclusive} ->
+        case Point.compare(Point.next(left_point), right_point) do
           :eq ->
             normalized_empty(original)
 
@@ -155,13 +158,13 @@ defmodule Interval do
       # transformations:
       # [a,b] -> [a, b+1)
       # (a,b] -> [a+1, b+1)
-      {:discrete, _, true, true} ->
+      {:discrete, _, :inclusive, :inclusive} ->
         %__MODULE__{
           original
           | right: normalize_right_endpoint(right)
         }
 
-      {:discrete, _, false, true} ->
+      {:discrete, _, :exclusive, :inclusive} ->
         %__MODULE__{
           original
           | left: normalize_left_endpoint(left),
@@ -170,7 +173,7 @@ defmodule Interval do
 
       # Finally, if we have an [) interval, then the original was
       # valid:
-      {:discrete, :lt, true, false} ->
+      {:discrete, :lt, :inclusive, :exclusive} ->
         original
     end
   end
@@ -186,18 +189,18 @@ defmodule Interval do
 
   defp normalize_right_endpoint(:unbounded), do: :unbounded
 
-  defp normalize_right_endpoint(right) do
-    case {Point.type(right.point), Endpoint.inclusive?(right)} do
-      {:discrete, true} -> Endpoint.exclusive(Point.next(right.point))
+  defp normalize_right_endpoint({right_bound, right_point} = right) do
+    case {Point.type(right_point), right_bound} do
+      {:discrete, :inclusive} -> {:exclusive, Point.next(right_point)}
       {_, _} -> right
     end
   end
 
   defp normalize_left_endpoint(:unbounded), do: :unbounded
 
-  defp normalize_left_endpoint(left) do
-    case {Point.type(left.point), Endpoint.inclusive?(left)} do
-      {:discrete, false} -> Endpoint.inclusive(Point.next(left.point))
+  defp normalize_left_endpoint({left_bound, left_point} = left) do
+    case {Point.type(left_point), left_bound} do
+      {:discrete, :exclusive} -> {:inclusive, Point.next(left_point)}
       {_, _} -> left
     end
   end
@@ -233,15 +236,19 @@ defmodule Interval do
   # If properly normalized, all empty intervals have been normalized to the form
   # `(zero, zero)` so we can match directly on that:
   def empty?(%__MODULE__{
-        left: %{inclusive: false, point: p},
-        right: %{inclusive: false, point: p}
-      }),
-      do: true
+        left: {:exclusive, p},
+        right: {:exclusive, p}
+      }) do
+    true
+  end
 
   # If the interval is not properly normalized, we don't want to give an
   # incorrect answer, so we do the math to check if the interval is indeed empty:
-  def empty?(%__MODULE__{left: %Endpoint{} = left, right: %Endpoint{} = right}) do
-    compare = Point.compare(left.point, right.point)
+  def empty?(%__MODULE__{
+        left: {left_bound, left_point},
+        right: {right_bound, right_point}
+      }) do
+    compare = Point.compare(left_point, right_point)
 
     cond do
       # left and right is equal, then the interval is empty
@@ -251,16 +258,17 @@ defmodule Interval do
       # we'd only have to check for the `(zero,zero)` interval.
       # Therefore we must assume that the bounds could be incorrectly set to e.g. [p,p)
       compare == :eq ->
-        not left.inclusive or not right.inclusive
+        left_bound == :exclusive or right_bound == :exclusive
 
       # if the point type is discrete and both bounds are exclusive,
       # then the interval could _also_ be empty if next(left) == right,
       # because the interval would represent 0 points.
-      Point.type(left.point) == :discrete and not left.inclusive and not right.inclusive ->
+      Point.type(left_point) == :discrete and
+        left_bound == :exclusive and right_bound == :exclusive ->
         :eq ==
-          left.point
+          left_point
           |> Point.next()
-          |> Point.compare(right.point)
+          |> Point.compare(right_point)
 
       # If none of the above, then the interval is not empty
       true ->
@@ -331,7 +339,7 @@ defmodule Interval do
       false
 
   """
-  def inclusive_left?(%__MODULE__{left: %Endpoint{} = left}), do: Endpoint.inclusive?(left)
+  def inclusive_left?(%__MODULE__{left: {:inclusive, _}}), do: true
   def inclusive_left?(%__MODULE__{}), do: false
 
   @doc """
@@ -355,7 +363,7 @@ defmodule Interval do
       false
 
   """
-  def inclusive_right?(%__MODULE__{right: %Endpoint{} = right}), do: Endpoint.inclusive?(right)
+  def inclusive_right?(%__MODULE__{right: {:inclusive, _}}), do: true
   def inclusive_right?(%__MODULE__{}), do: false
 
   @doc """
@@ -431,21 +439,11 @@ defmodule Interval do
 
   """
   @spec size(t(), unit :: any()) :: any()
-  def size(%__MODULE__{} = a, unit \\ nil) do
-    cond do
-      unbounded_left?(a) ->
-        nil
-
-      unbounded_right?(a) ->
-        nil
-
-      true ->
-        case unit do
-          nil -> Point.subtract(a.right.point, a.left.point)
-          unit -> Point.subtract(a.right.point, a.left.point, unit)
-        end
-    end
-  end
+  def size(a, unit \\ nil)
+  def size(%__MODULE__{left: :unbounded}, _unit), do: nil
+  def size(%__MODULE__{right: :unbounded}, _unit), do: nil
+  def size(%__MODULE__{} = a, nil), do: Point.subtract(rpoint(a), lpoint(a))
+  def size(%__MODULE__{} = a, unit), do: Point.subtract(rpoint(a), lpoint(a), unit)
 
   @doc """
   Is `a` strictly left of `b`.
@@ -482,7 +480,7 @@ defmodule Interval do
       not unbounded_left?(b) and
       not empty?(a) and
       not empty?(b) and
-      case Point.compare(a.right.point, b.left.point) do
+      case Point.compare(rpoint(a), lpoint(b)) do
         :lt -> true
         :eq -> not inclusive_right?(a) or not inclusive_left?(b)
         :gt -> false
@@ -524,7 +522,7 @@ defmodule Interval do
       not unbounded_right?(b) and
       not empty?(a) and
       not empty?(b) and
-      case Point.compare(a.left.point, b.right.point) do
+      case Point.compare(lpoint(a), rpoint(b)) do
         :lt -> false
         :eq -> not inclusive_left?(a) or not inclusive_right?(b)
         :gt -> true
@@ -573,23 +571,23 @@ defmodule Interval do
         not empty?(b)
 
     with true <- prerequisite do
-      case Point.type(a.right.point) do
+      case Point.type(rpoint(a)) do
         :discrete ->
           check =
             inclusive_right?(a) != inclusive_left?(b) and
-              Point.compare(a.right.point, b.left.point) == :eq
+              Point.compare(rpoint(a), lpoint(b)) == :eq
 
           # NOTE: Don't think this is needed when we also
           # normalize discrete values to [)
           next_check =
             inclusive_right?(a) and inclusive_left?(b) and
-              Point.compare(Point.next(a.right.point), b.left.point) == :eq
+              Point.compare(Point.next(rpoint(a)), lpoint(b)) == :eq
 
           check or next_check
 
         :continuous ->
           inclusive_right?(a) != inclusive_left?(b) and
-            Point.compare(a.right.point, b.left.point) == :eq
+            Point.compare(rpoint(a), lpoint(b)) == :eq
       end
     end
   end
@@ -635,22 +633,22 @@ defmodule Interval do
         not empty?(b)
 
     with true <- prerequisite do
-      case Point.type(a.left.point) do
+      case Point.type(lpoint(a)) do
         :discrete ->
           check =
             inclusive_left?(a) != inclusive_right?(b) and
-              Point.compare(a.left.point, b.right.point) == :eq
+              Point.compare(lpoint(a), rpoint(b)) == :eq
 
           # NOTE: Don't think this is needed when we also
           # normalize discrete values to [)
           next_check =
             inclusive_left?(a) and inclusive_right?(b) and
-              Point.compare(Point.previous(a.left.point), b.right.point) == :eq
+              Point.compare(Point.previous(lpoint(a)), rpoint(b)) == :eq
 
           check or next_check
 
         :continuous ->
-          Point.compare(a.left.point, b.right.point) == :eq and
+          Point.compare(lpoint(a), rpoint(b)) == :eq and
             inclusive_left?(a) != inclusive_right?(b)
       end
     end
@@ -791,21 +789,21 @@ defmodule Interval do
     prerequisite = not (empty?(a) or empty?(b))
 
     with true <- prerequisite do
-      # check that a.left.point is less than or equal to (if inclusive) b.left.point:
+      # check that lpoint(a) is less than or equal to (if inclusive) lpoint(b):
       contains_left =
         unbounded_left?(a) or
           (not unbounded_left?(b) and
-             case Point.compare(a.left.point, b.left.point) do
+             case Point.compare(lpoint(a), lpoint(b)) do
                :gt -> false
                :eq -> inclusive_left?(a) == inclusive_left?(b)
                :lt -> true
              end)
 
-      # check that a.right.point is greater than or equal to (if inclusive) b.right.point:
+      # check that rpoint(a) is greater than or equal to (if inclusive) rpoint(b):
       contains_right =
         unbounded_right?(a) or
           (not unbounded_right?(b) and
-             case Point.compare(a.right.point, b.right.point) do
+             case Point.compare(rpoint(a), rpoint(b)) do
                :gt -> true
                :eq -> inclusive_right?(a) == inclusive_right?(b)
                :lt -> false
@@ -962,12 +960,12 @@ defmodule Interval do
   defp min_endpoint(a, :unbounded, :prefer_bounded), do: a
 
   defp min_endpoint(left, right, _) do
-    case Point.compare(left.point, right.point) do
+    case Point.compare(point(left), point(right)) do
       :gt ->
         right
 
       :eq ->
-        case {Endpoint.inclusive?(left), Endpoint.inclusive?(right)} do
+        case {inclusive?(left), inclusive?(right)} do
           {true, _} -> left
           {_, true} -> right
           _ -> left
@@ -984,12 +982,12 @@ defmodule Interval do
   defp max_endpoint(a, :unbounded, :prefer_bounded), do: a
 
   defp max_endpoint(left, right, _) do
-    case Point.compare(left.point, right.point) do
+    case Point.compare(point(left), point(right)) do
       :gt ->
         left
 
       :eq ->
-        case {Endpoint.inclusive?(left), Endpoint.inclusive?(right)} do
+        case {inclusive?(left), inclusive?(right)} do
           {true, _} -> left
           {_, true} -> right
           _ -> left
@@ -1000,7 +998,25 @@ defmodule Interval do
     end
   end
 
+  defp normalized_empty(%__MODULE__{left: left, right: right} = a) do
+    point =
+      case {left, right} do
+        {{_bound, point}, _} ->
+          Point.zero(point)
+
+        {_, {_bound, point}} ->
+          Point.zero(point)
+
+        {:unbounded, :unbounded} ->
+          raise "cannot convert unbounded interval into empty interval"
+      end
+
+    endpoint = {:exclusive, point}
+    %{a | left: endpoint, right: endpoint}
+  end
+
   # completely unbounded:
+  @compile {:inline, unpack_bounds: 1}
   defp unpack_bounds(""), do: {:unbounded, :unbounded}
   # unbounded either left or right
   defp unpack_bounds(")"), do: {:unbounded, :exclusive}
@@ -1013,21 +1029,18 @@ defmodule Interval do
   defp unpack_bounds("[)"), do: {:inclusive, :exclusive}
   defp unpack_bounds("(]"), do: {:exclusive, :inclusive}
 
-  defp normalized_empty(%__MODULE__{left: left, right: right} = a) do
-    point =
-      case {left, right} do
-        {%Endpoint{point: point}, _} ->
-          Point.zero(point)
+  # Endpoint value extraction:
 
-        {_, %Endpoint{point: point}} ->
-          Point.zero(point)
+  @compile {:inline, rpoint: 1}
+  defp rpoint(%{right: right}), do: point(right)
+  @compile {:inline, lpoint: 1}
+  defp lpoint(%{left: left}), do: point(left)
 
-        {:unbounded, :unbounded} ->
-          raise "cannot convert unbounded interval into empty interval"
-      end
+  @compile {:inline, point: 1}
+  defp point(:unbounded), do: nil
+  defp point({_, point}), do: point
 
-    endpoint = Endpoint.new(point, :exclusive)
-
-    %{a | left: endpoint, right: endpoint}
-  end
+  @compile {:inline, inclusive?: 1}
+  defp inclusive?({:inclusive, _}), do: true
+  defp inclusive?(_), do: false
 end
