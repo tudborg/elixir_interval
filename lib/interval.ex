@@ -571,24 +571,17 @@ defmodule Interval do
         not empty?(b)
 
     with true <- prerequisite do
-      case Point.type(rpoint(a)) do
-        :discrete ->
-          check =
-            inclusive_right?(a) != inclusive_left?(b) and
-              Point.compare(rpoint(a), lpoint(b)) == :eq
+      # Assuming we've normalized both a and b,
+      # if the point types are discrete, and and normalized to `[)`
+      # then continuous and discrete intervals are checked in the same way.
+      # To ensure we don't give the wrong answer though,
+      # we have an assertion that that a discrete point type must be
+      # bounded as `[)`:
+      assert_normalized_bounds(a)
+      assert_normalized_bounds(b)
 
-          # NOTE: Don't think this is needed when we also
-          # normalize discrete values to [)
-          next_check =
-            inclusive_right?(a) and inclusive_left?(b) and
-              Point.compare(Point.next(rpoint(a)), lpoint(b)) == :eq
-
-          check or next_check
-
-        :continuous ->
-          inclusive_right?(a) != inclusive_left?(b) and
-            Point.compare(rpoint(a), lpoint(b)) == :eq
-      end
+      inclusive_right?(a) != inclusive_left?(b) and
+        Point.compare(rpoint(a), lpoint(b)) == :eq
     end
   end
 
@@ -633,24 +626,17 @@ defmodule Interval do
         not empty?(b)
 
     with true <- prerequisite do
-      case Point.type(lpoint(a)) do
-        :discrete ->
-          check =
-            inclusive_left?(a) != inclusive_right?(b) and
-              Point.compare(lpoint(a), rpoint(b)) == :eq
+      # Assuming we've normalized both a and b,
+      # if the point types are discrete, and and normalized to `[)`
+      # then continuous and discrete intervals are checked in the same way.
+      # To ensure we don't give the wrong answer though,
+      # we have an assertion that that a discrete point type must be
+      # bounded as `[)`:
+      assert_normalized_bounds(a)
+      assert_normalized_bounds(b)
 
-          # NOTE: Don't think this is needed when we also
-          # normalize discrete values to [)
-          next_check =
-            inclusive_left?(a) and inclusive_right?(b) and
-              Point.compare(Point.previous(lpoint(a)), rpoint(b)) == :eq
-
-          check or next_check
-
-        :continuous ->
-          Point.compare(lpoint(a), rpoint(b)) == :eq and
-            inclusive_left?(a) != inclusive_right?(b)
-      end
+      Point.compare(lpoint(a), rpoint(b)) == :eq and
+        inclusive_left?(a) != inclusive_right?(b)
     end
   end
 
@@ -959,20 +945,20 @@ defmodule Interval do
   defp min_endpoint(:unbounded, b, :prefer_bounded), do: b
   defp min_endpoint(a, :unbounded, :prefer_bounded), do: a
 
-  defp min_endpoint(left, right, _) do
-    case Point.compare(point(left), point(right)) do
+  defp min_endpoint(a, b, _) do
+    case Point.compare(point(a), point(b)) do
       :gt ->
-        right
+        b
 
       :eq ->
-        case {inclusive?(left), inclusive?(right)} do
-          {true, _} -> left
-          {_, true} -> right
-          _ -> left
+        case {inclusive?(a), inclusive?(b)} do
+          {true, _} -> a
+          {_, true} -> b
+          _ -> a
         end
 
       :lt ->
-        left
+        a
     end
   end
 
@@ -981,20 +967,20 @@ defmodule Interval do
   defp max_endpoint(:unbounded, b, :prefer_bounded), do: b
   defp max_endpoint(a, :unbounded, :prefer_bounded), do: a
 
-  defp max_endpoint(left, right, _) do
-    case Point.compare(point(left), point(right)) do
+  defp max_endpoint(a, b, _) do
+    case Point.compare(point(a), point(b)) do
       :gt ->
-        left
+        a
 
       :eq ->
-        case {inclusive?(left), inclusive?(right)} do
-          {true, _} -> left
-          {_, true} -> right
-          _ -> left
+        case {inclusive?(a), inclusive?(b)} do
+          {true, _} -> a
+          {_, true} -> b
+          _ -> a
         end
 
       :lt ->
-        right
+        b
     end
   end
 
@@ -1006,9 +992,6 @@ defmodule Interval do
 
         {_, {_bound, point}} ->
           Point.zero(point)
-
-        {:unbounded, :unbounded} ->
-          raise "cannot convert unbounded interval into empty interval"
       end
 
     endpoint = {:exclusive, point}
@@ -1037,10 +1020,32 @@ defmodule Interval do
   defp lpoint(%{left: left}), do: point(left)
 
   @compile {:inline, point: 1}
-  defp point(:unbounded), do: nil
   defp point({_, point}), do: point
 
   @compile {:inline, inclusive?: 1}
   defp inclusive?({:inclusive, _}), do: true
   defp inclusive?(_), do: false
+
+  # Left is bounded and has a point
+  defp assert_normalized_bounds(%{left: {_, point}} = a) do
+    assert_normalized_bounds(a, Point.type(point))
+  end
+
+  # right is bounded and has a point
+  defp assert_normalized_bounds(%{right: {_, point}} = a) do
+    assert_normalized_bounds(a, Point.type(point))
+  end
+
+  defp assert_normalized_bounds(a, :discrete) do
+    left_ok = unbounded_left?(a) or inclusive_left?(a)
+    right_ok = unbounded_right?(a) or not inclusive_right?(a)
+
+    if not (left_ok and right_ok) do
+      raise "Discrete intervals should be normalized to the bounds `[)`, but got #{inspect(a)}"
+    end
+  end
+
+  defp assert_normalized_bounds(_a, _) do
+    nil
+  end
 end

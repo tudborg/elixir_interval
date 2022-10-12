@@ -158,6 +158,36 @@ defmodule IntervalTest do
     refute Interval.strictly_right_of?(a, inter(4))
   end
 
+  test "adjacent_left_of?/2" do
+    assert Interval.adjacent_left_of?(inter(1, 2), inter(2, 3))
+    refute Interval.adjacent_left_of?(inter(1, 2), inter(3, 4))
+    refute Interval.adjacent_left_of?(inter(nil, nil), inter(1, 2))
+    refute Interval.adjacent_left_of?(inter(1, 2), inter(nil, nil))
+
+    # non-normalized bounds should raise:
+    a = %Interval{left: :unbounded, right: {:inclusive, 1}}
+    b = %Interval{left: {:inclusive, 1}, right: :unbounded}
+
+    assert_raise RuntimeError, fn ->
+      Interval.adjacent_left_of?(a, b)
+    end
+  end
+
+  test "adjacent_right_of?/2" do
+    assert Interval.adjacent_right_of?(inter(2, 3), inter(1, 2))
+    refute Interval.adjacent_right_of?(inter(3, 4), inter(1, 2))
+    refute Interval.adjacent_right_of?(inter(1, 2), inter(nil, nil))
+    refute Interval.adjacent_right_of?(inter(nil, nil), inter(1, 2))
+
+    # non-normalized bounds should raise:
+    a = %Interval{left: {:inclusive, 1}, right: :unbounded}
+    b = %Interval{left: :unbounded, right: {:inclusive, 1}}
+
+    assert_raise RuntimeError, fn ->
+      Interval.adjacent_right_of?(a, b)
+    end
+  end
+
   test "overlaps?/2" do
     # inclusive
     a = inter(1, 3, "[]")
@@ -218,6 +248,16 @@ defmodule IntervalTest do
 
     assert Interval.intersection(inter(1.0, 3.0, "[)"), inter(2.0, 4.0, "[)")) ===
              inter(2.0, 3.0, "[)")
+
+    # testing min_endpoint and max_endpoint
+    assert Interval.intersection(inter(2.0, 3.0, "[]"), inter(2.0, 3.0, "[]")) ===
+             inter(2.0, 3.0, "[]")
+    assert Interval.intersection(inter(2.0, 3.0, "()"), inter(2.0, 3.0, "()")) ===
+             inter(2.0, 3.0, "()")
+    assert Interval.intersection(inter(2.0, 3.0, "()"), inter(2.0, 3.0, "[]")) ===
+             inter(2.0, 3.0, "()")
+    assert Interval.intersection(inter(2.0, 3.0, "()"), inter(2.0, 3.0, "(]")) ===
+             inter(2.0, 3.0, "()")
   end
 
   test "intersection/2 with unbounded intervals" do
@@ -236,5 +276,13 @@ defmodule IntervalTest do
     }
 
     assert Interval.contains?(a, b)
+  end
+
+  test "intersection regression 2022-10-12 - incorrect bounds" do
+    # bad code wanted this intersection to be [2.0,3.0]
+    assert Interval.intersection(
+      inter(2.0, 3.0, "[)"),
+      inter(2.0, 3.0, "[]")
+      ) === inter(2.0, 3.0, "[)")
   end
 end
