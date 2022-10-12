@@ -1036,18 +1036,9 @@ defmodule Interval do
   @compile {:inline, lpoint: 1}
   defp lpoint(%{left: left}), do: point(left)
 
-  @compile {:inline, rbound: 1}
-  defp rbound(%{right: right}), do: bound(right)
-  @compile {:inline, lbound: 1}
-  defp lbound(%{left: left}), do: bound(left)
-
   @compile {:inline, point: 1}
   defp point(:unbounded), do: nil
   defp point({_, point}), do: point
-
-  @compile {:inline, bound: 1}
-  defp bound(:unbounded), do: :exclusive
-  defp bound({bound, _}), do: bound
 
   @compile {:inline, inclusive?: 1}
   defp inclusive?({:inclusive, _}), do: true
