@@ -301,6 +301,17 @@ defmodule IntervalTest do
     assert Interval.partition(inter(1, 4), 4) === []
   end
 
+  test "partition/2's result unioned together is it's input interval" do
+    a = inter(1, 4)
+
+    b =
+      a
+      |> Interval.partition(2)
+      |> Enum.reduce(&Interval.union/2)
+
+    assert a === b
+  end
+
   test "contains/2 regression 2022-10-07 - `,1)` failed to contain `[0,1)`" do
     a = %Interval{left: :unbounded, right: {:exclusive, 1}}
 
