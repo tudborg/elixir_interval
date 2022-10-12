@@ -991,10 +991,9 @@ defmodule Interval do
       # then the two intervals are either strictly left or strictly right,
       # we return empty (A and B share an empty amount of points)
       true ->
-        # TODO: remove this assertion.
-        # It should always be true, so no point in checking:
-        true == strictly_left_of?(a, b) or strictly_right_of?(a, b)
-
+        # This assertion _must_ be true, since overlap?/2 returned false
+        # so there is no point in running it.
+        # true == strictly_left_of?(a, b) or strictly_right_of?(a, b)
         normalized_empty(a)
     end
   end
