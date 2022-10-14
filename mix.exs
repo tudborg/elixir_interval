@@ -33,9 +33,9 @@ defmodule Interval.MixProject do
     [
       name: "Interval",
       source_url: @source_url,
-      source_ref: "v#{@version}",
       # homepage_url: "https://github.com/tbug/interval_elixir",
       docs: [
+        source_ref: "v#{@version}",
         main: "Interval",
         extras: [
           "README.md",
