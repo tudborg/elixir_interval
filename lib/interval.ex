@@ -152,11 +152,54 @@ defmodule Interval do
   end
 
   @doc """
-  Create a new unbounded interval
+  Create a new unbounded interval.
+
+  This is the exactly the same as `new/1` with an empty list of options.
   """
+  @spec new() :: t()
+  def new() do
+    new([])
+  end
 
-  def new(opts \\ [])
+  @doc """
+  Create a new interval.
 
+  ## Options
+
+  - `left` The left (or lower) endpoint of the interval
+  - `right` The right (or upper) endpoint of the interval
+  - `bounds` The bound mode to use. Defaults to `"[)"`
+
+  A `nil` (`left` or `right`) endpoint is considered unbounded.  
+  The endpoint will also be considered unbounded if the `bounds` is explicitly
+  set as unbounded.
+
+  ## Bounds
+
+  The `bounds` options contains the left and right bound mode to use.
+  The bound can be inclusive, exclusive or unbounded.
+
+  The following valid bound values are supported:
+
+  - `"[)"` left-inclusive, right-exclusive (default)
+  - `"(]"` left-exclusive, right-inclusive
+  - `"[]"` left-inclusive, right-inclusive
+  - `"()"` left-exclusive, right-exclusive
+  - `")"`  left-unbounded, right-exclusive
+  - `"]"`  left-unbounded, right-inclusive
+  - `"("`  left-exclusive, right-unbounded
+  - `"["`  left-inclusive, right-unbounded
+
+  ## Examples
+
+      iex> new([])
+
+      iex> new(left: 1)
+
+      iex> new(left: 1, right: 1, bounds: "[]")
+
+      iex> new(left: 10, right: 20, bounds: "()")
+  """
   def new(opts) when is_list(opts) do
     left = Keyword.get(opts, :left, nil)
     right = Keyword.get(opts, :right, nil)
