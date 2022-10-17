@@ -68,22 +68,6 @@ defmodule Interval.IntegerIntervalPropertyTest do
           assert Interval.contains?(a, b)
           assert Interval.contains?(b, a)
 
-          if not Interval.unbounded_left?(b) do
-            assert Interval.contains_point?(a, elem(b.left, 1))
-          end
-
-          if not Interval.unbounded_right?(b) do
-            assert Interval.contains_point?(a, elem(b.right, 1))
-          end
-
-          if not Interval.unbounded_left?(a) do
-            assert Interval.contains_point?(b, elem(a.left, 1))
-          end
-
-          if not Interval.unbounded_right?(a) do
-            assert Interval.contains_point?(b, elem(a.right, 1))
-          end
-
         a != b ->
           a_contains_b = Interval.contains?(a, b)
           b_contains_a = Interval.contains?(b, a)
