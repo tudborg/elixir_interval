@@ -11,7 +11,7 @@ defmodule Interval.MixProject do
       Interval / range operations on DateTime, Integer, Float and anything else.
       """,
       version: @version,
-      elixir: "~> 1.11",
+      elixir: "~> 1.12",
       start_permanent: Mix.env() == :prod,
       test_coverage: test_coverage(),
       preferred_cli_env: [check: :test],
