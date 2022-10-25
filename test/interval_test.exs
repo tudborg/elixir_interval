@@ -54,45 +54,31 @@ defmodule IntervalTest do
     refute floati(1.0, 2.0, "[)") |> Interval.inclusive_right?()
   end
 
-  # test "normalize/1" do
-  #   # normalizing an empty results in an empty.
-  #   empty = Interval.new(left: 0, right: 0)
-  #   assert Interval.normalize(empty) == empty
-
-  #   # left and right type mismatch raises
-  #   assert_raise ArgumentError, fn ->
-  #     Interval.new(left: 0, right: 0.0)
-  #   end
-
-  #   # if left > right, raises
-  #   left = {:inclusive, 2}
-  #   right = {:inclusive, 1}
-
-  #   assert_raise ArgumentError, fn ->
-  #     Interval.from_endpoints(empty.__struct__, left, right)
-  #   end
-  # end
-
   test "size/1" do
     # size of  unbounded intervals is  nil
-    assert nil === Interval.size(inti(nil, nil))
+    assert 0 === Interval.size(inti(:empty, :empty))
+    assert 1 === Interval.size(inti(1, 2))
     assert nil === Interval.size(inti(nil, 1))
     assert nil === Interval.size(inti(1, nil))
+    assert nil === Interval.size(inti(nil, nil))
 
     # size of bounded intervals
     assert 0.0 === Interval.size(floati(1.0, 1.0, "()"))
     assert 1.0 === Interval.size(floati(1.0, 2.0))
     assert nil === Interval.size(floati(1.0, nil))
     assert nil === Interval.size(floati(nil, 2.0))
+    assert nil === Interval.size(floati(nil, nil))
 
     assert 0 === Interval.size(Interval.Date.new(left: :empty, right: :empty))
     assert nil === Interval.size(Interval.Date.new(left: ~D[2021-01-01]))
     assert nil === Interval.size(Interval.Date.new(right: ~D[2021-01-01]))
+    assert nil === Interval.size(Interval.Date.new())
     assert 31 === Interval.size(Interval.Date.new(left: ~D[2021-01-01], right: ~D[2021-02-01]))
 
     assert 0.0 === Interval.size(Interval.DateTime.new(left: :empty, right: :empty))
     assert nil === Interval.size(Interval.DateTime.new(left: ~U[2021-01-01 00:00:00Z]))
     assert nil === Interval.size(Interval.DateTime.new(right: ~U[2021-01-01 00:00:00Z]))
+    assert nil === Interval.size(Interval.DateTime.new())
 
     assert 31 * 86_400 ===
              Interval.size(

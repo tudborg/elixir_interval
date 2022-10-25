@@ -10,21 +10,7 @@ defmodule Interval.Date do
 
   def point_valid?(a), do: is_struct(a, Date)
 
-  @doc """
-      iex> point_compare(~D[2022-01-01], ~D[2022-01-01])
-      :eq
-      
-      iex> point_compare(~D[2022-01-01], ~D[2022-01-02])
-      :lt
-
-      iex> point_compare(~D[2022-01-02], ~D[2022-01-01])
-      :gt
-  """
   defdelegate point_compare(a, b), to: Date, as: :compare
 
-  @doc """
-      iex> point_step(~D[2022-01-01], 1)
-      ~D[2022-01-02]
-  """
   def point_step(%Date{} = date, n) when is_integer(n), do: Date.add(date, n)
 end
