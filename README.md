@@ -17,7 +17,7 @@ The package can be installed by adding `interval` to your list of dependencies i
 ```elixir
 def deps do
   [
-    {:interval, "~> 0.1.3"}
+    {:interval, "~> 0.2.0"}
   ]
 end
 ```
@@ -28,8 +28,8 @@ end
 ### Integer intervals
 
 ```elixir
-a = Interval.new(left: 1, right: 4, bounds: "[]")
-b = Interval.new(left: 2, right: 5, bounds: "[]")
+a = Interval.Integer.new(left: 1, right: 4, bounds: "[]")
+b = Interval.Integer.new(left: 2, right: 5, bounds: "[]")
 
 assert Interval.contains?(a, b)
 assert Interval.overlaps?(a, b)
@@ -42,8 +42,8 @@ d = Interval.union(a, b) # [1, 5]
 
 ```elixir
 # default bound is  "[)"
-y2022 = Interval.new(left: ~U[2022-01-01 00:00:00Z], right: ~U[2023-01-01 00:00:00Z])
-x = Interval.new(left: ~U[2018-07-01 00:00:00Z], right: ~U[2022-03-01 00:00:00Z])
+y2022 = Interval.Integer.new(left: ~U[2022-01-01 00:00:00Z], right: ~U[2023-01-01 00:00:00Z])
+x = Interval.Integer.new(left: ~U[2018-07-01 00:00:00Z], right: ~U[2022-03-01 00:00:00Z])
 
 Interval.intersection(y2022, x)
 

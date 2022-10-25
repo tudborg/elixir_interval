@@ -1,5 +1,5 @@
 defmodule Interval.FloatIntervalPropertyTest do
-  use ExUnit.Case
+  use ExUnit.Case, async: true
   use ExUnitProperties
 
   property "overlaps?/2 is commutative" do
