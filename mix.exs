@@ -1,7 +1,7 @@
 defmodule Interval.MixProject do
   use Mix.Project
 
-  @version "0.1.3"
+  @version "0.2.0"
   @source_url "https://github.com/tbug/elixir_interval"
 
   def project do
@@ -56,7 +56,7 @@ defmodule Interval.MixProject do
 
   defp test_coverage() do
     [
-      summary: [threshold: 90]
+      summary: [threshold: 85]
     ]
   end
 

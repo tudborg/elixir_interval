@@ -1,9 +1,18 @@
 # Changelog
 
-## HEAD (v0.1.4)
+## HEAD (v0.2.0)
 
+- Various `RuntimeError`s handling bad input to a function has been converted to `ArgumentError`s
+- Simplified various things
+  - `Point.previous(a)` and `Point.next(a)` became `point_step/2` in the `Interval.Behaviour`.
+  - The idea of a "zero" point was removed because it doesn't make sense for all intervals.
+  - Special-case for empty intervals, which doesn't require implementation-specific behaviour.
+  - `Interval.new/1` now requires a `:module` option of the specific implementation to use,
+    however the implementation has a `new/1` that infers this when creating new intervals.
+- Ditching the `Interval.Point` protocol in favor of a behaviour for the entire interval.
 - Adding `Interval.contains_point?/2`
 - Adding `Interval.partition/2`
+- Adding `Interval.size/1` and removing the `/2`
 
 ## v0.1.3
 
