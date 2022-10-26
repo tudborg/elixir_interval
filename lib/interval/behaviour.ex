@@ -20,7 +20,7 @@ defmodule Interval.Behaviour do
   ##
 
   @doc """
-  Create a new `t:Interval.t()`
+  Create a new `t:Interval.t/0`
   """
   @callback new(new_opts()) :: Interval.t()
 

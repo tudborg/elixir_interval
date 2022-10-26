@@ -2,6 +2,9 @@
 
 ## HEAD (v0.2.0)
 
+- Allow opting out of built in implementations by configuring `:interval, Interval.Float: false`
+- Adding `Interval.Intervalable` protocol, which allows you to define what interval implementation
+  to use for value types. This is purely for ergonomic reasons.
 - Various `RuntimeError`s handling bad input to a function has been converted to `ArgumentError`s
 - Simplified various things
   - `Point.previous(a)` and `Point.next(a)` became `point_step/2` in the `Interval.Behaviour`.

@@ -143,7 +143,7 @@ defmodule Interval do
         }
 
   @typedoc """
-  Shorthand for `t:t(any())`
+  Shorthand for `t(any())`
   """
   @type t() :: t(any())
 
@@ -205,11 +205,18 @@ defmodule Interval do
   """
   @spec new(Keyword.t()) :: t()
   def new(opts) when is_list(opts) do
-    module = Keyword.fetch!(opts, :module)
+    module = Keyword.get(opts, :module, nil)
     left = Keyword.get(opts, :left, nil)
     right = Keyword.get(opts, :right, nil)
     bounds = Keyword.get(opts, :bounds, nil)
     {left_bound, right_bound} = unpack_bounds(bounds)
+
+    module = module || infer_implementation([left, right])
+
+    if is_nil(module) do
+      raise ArgumentError,
+        message: "No implementation for interval available. Options given: #{inspect(opts)}"
+    end
 
     left_endpoint =
       case {left, left_bound} do
@@ -1260,6 +1267,33 @@ defmodule Interval do
     nil
   end
 
+  defp infer_implementation(values) do
+    implementations =
+      values
+      # reject nil-values (they mean "unbounded")
+      |> Enum.reject(&is_nil/1)
+      # check that an implementation exists for the value
+      |> Enum.map(&(Interval.Intervalable.impl_for(&1) && &1))
+      # reject if nil implementation
+      |> Enum.reject(&is_nil/1)
+      # call infer_implementation/1 on the remaining values we know has an implementation
+      |> Enum.map(&Interval.Intervalable.infer_implementation/1)
+      # get the unique list of implementations available
+      |> Enum.uniq()
+
+    case implementations do
+      [] ->
+        nil
+
+      [impl] ->
+        impl
+
+      [_first_impl | _] = multiple ->
+        raise ArgumentError,
+          message: "Got multiple potential implementations for intervals: #{inspect(multiple)}"
+    end
+  end
+
   ##
   ## using-macro
   ##
@@ -1277,12 +1311,14 @@ defmodule Interval do
     type = Keyword.fetch!(opts, :type)
     discrete = Keyword.fetch!(opts, :discrete)
 
-    quote location: :keep do
+    quote location: :keep, bind_quoted: [type: type, discrete: discrete] do
       @moduledoc """
-      Represents a #{if unquote(discrete), do: "discrete", else: "continuous"} interval containing `#{unquote(type)}`
+      Represents a #{if discrete, do: "discrete", else: "continuous"}
+      interval containing `#{type}`
       """
 
       @behaviour Interval.Behaviour
+      @discrete discrete
 
       defstruct left: nil, right: nil
 
@@ -1290,7 +1326,7 @@ defmodule Interval do
         Interval.new(Keyword.put(opts, :module, __MODULE__))
       end
 
-      def discrete?(), do: unquote(discrete)
+      def discrete?(), do: @discrete
     end
   end
 end
