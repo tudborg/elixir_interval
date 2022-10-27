@@ -1,6 +1,6 @@
 # Changelog
 
-## HEAD (v0.2.0)
+## v0.2.0
 
 - Allow opting out of built in implementations by configuring `:interval, Interval.Float: false`
 - Adding `Interval.Intervalable` protocol, which allows you to define what interval implementation
