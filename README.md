@@ -25,6 +25,18 @@ end
 
 ## Examples
 
+### With Ecto
+
+The builtin types (Like `Interval.DateTime`) can be used as an `Ecto.Type` out
+of the box:
+
+```elixir
+schema "reservations" do
+  field :period, Interval.DateTime
+  # ...
+end
+```
+
 ### Integer intervals
 
 ```elixir
@@ -52,3 +64,4 @@ Interval.intersection(y2022, x)
 #   right: {:exclusive, ~U[2022-03-01 00:00:00Z]}
 # }
 ```
+
