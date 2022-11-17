@@ -1,4 +1,4 @@
-if Code.ensure_loaded?(Postgrex.Range) do
+if Code.ensure_loaded?(Postgrex) do
   defmodule Interval.Support.Postgrex do
     @moduledoc """
     Conversion helpers for converting `t:Postgrex.Range.t/0` to and from
