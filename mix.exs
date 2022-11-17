@@ -72,13 +72,16 @@ defmodule Interval.MixProject do
 
   defp dialyzer do
     [
-      flags: [:error_handling, :underspecs, :unmatched_returns, :no_return]
+      flags: [:error_handling, :underspecs, :unmatched_returns, :no_return],
+      plt_add_apps: [:ecto]
     ]
   end
 
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
+      {:ecto, ">= 3.4.3 and < 4.0.0", only: [:test, :dev], optional: true},
+      {:postgrex, "~> 0.14", only: [:test, :dev], optional: true},
       {:stream_data, "~> 0.5", only: [:test, :dev], runtime: false},
       {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},

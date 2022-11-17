@@ -1,4 +1,4 @@
-defmodule IntervalRegressionTest do
+defmodule Interval.RegressionTest do
   use ExUnit.Case, async: true
 
   test "contains/2 regression 2022-10-07 - `,1)` failed to contain `[0,1)`" do

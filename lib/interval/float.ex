@@ -4,6 +4,10 @@ if Application.get_env(:interval, Interval.Float, true) do
 
     use Interval, type: Float, discrete: false
 
+    if Code.ensure_loaded?(Interval.Support.Ecto) do
+      use Interval.Support.Ecto, ecto_type: :floatrange
+    end
+
     def point_valid?(a), do: is_float(a)
 
     def size(%__MODULE__{left: {_, a}, right: {_, b}}), do: b - a

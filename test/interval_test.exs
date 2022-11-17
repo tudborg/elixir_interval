@@ -1,4 +1,4 @@
-defmodule IntervalTest do
+defmodule Interval.IntervalTest do
   use ExUnit.Case, async: true
 
   doctest Interval, import: true
@@ -7,7 +7,7 @@ defmodule IntervalTest do
   defp inti(l, r), do: inti(l, r, nil)
   defp inti(l, r, bounds), do: Interval.Integer.new(left: l, right: r, bounds: bounds)
 
-  defp floati(p), do: floati(p, p, "[]")
+  # defp floati(p), do: floati(p, p, "[]")
   defp floati(l, r), do: floati(l, r, nil)
   defp floati(l, r, bounds), do: Interval.Float.new(left: l, right: r, bounds: bounds)
 

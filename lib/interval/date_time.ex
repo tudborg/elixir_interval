@@ -4,6 +4,10 @@ if Application.get_env(:interval, Interval.DateTime, true) do
 
     use Interval, type: DateTime, discrete: false
 
+    if Code.ensure_loaded?(Interval.Support.Ecto) do
+      use Interval.Support.Ecto, ecto_type: :tstzrange
+    end
+
     def size(%__MODULE__{right: :unbounded}), do: nil
     def size(%__MODULE__{left: :unbounded}), do: nil
     def size(%__MODULE__{left: :empty, right: :empty}), do: 0.0
