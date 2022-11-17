@@ -310,4 +310,30 @@ defmodule Interval.IntervalTest do
 
     assert a === b
   end
+
+  test "to_map/1" do
+    assert Interval.to_map(inti(1, 4)) ===
+             %{
+               type: "Interval.Integer",
+               empty: false,
+               left: %{inclusive: true, value: 1},
+               right: %{inclusive: false, value: 4}
+             }
+
+    assert Interval.to_map(inti(1, nil)) ===
+             %{
+               type: "Interval.Integer",
+               empty: false,
+               left: %{inclusive: true, value: 1},
+               right: nil
+             }
+
+    assert Interval.to_map(inti(1, 1)) ===
+             %{
+               type: "Interval.Integer",
+               empty: true,
+               left: nil,
+               right: nil
+             }
+  end
 end

@@ -1009,6 +1009,42 @@ defmodule Interval do
     end
   end
 
+  @doc """
+  Convert an `t:Interval.t/0` to a map.
+
+  The returned map contains the struct module used for the interval
+  in the `type` key, so that it is possible to reconstruct the interval from the map.
+  """
+  @doc since: "0.3.0"
+  @spec to_map(t()) :: %{
+          type: String.t(),
+          empty: boolean(),
+          left: nil | %{inclusive: boolean(), value: any()},
+          right: nil | %{inclusive: boolean(), value: any()}
+        }
+  def to_map(%module{} = a) do
+    empty? = Interval.empty?(a)
+
+    %{
+      type: Module.split(module) |> Enum.join("."),
+      empty: empty?,
+      left:
+        if(not Interval.unbounded_left?(a) and not empty?,
+          do: %{
+            inclusive: Interval.inclusive_left?(a),
+            value: Interval.left(a)
+          }
+        ),
+      right:
+        if(not Interval.unbounded_right?(a) and not empty?,
+          do: %{
+            inclusive: Interval.inclusive_right?(a),
+            value: Interval.right(a)
+          }
+        )
+    }
+  end
+
   ##
   ## Helpers
   ##
@@ -1363,36 +1399,15 @@ defmodule Interval do
 
       def discrete?(), do: @discrete
 
+      ##
+      ## Jason support
+      ## If Jason is loaded, we define an implementation for Jason.Encoder.
+      ##
       if jason_encoder and Code.ensure_loaded?(Jason) do
-        ##
-        ## Jason support
-        ## If Jason is loaded, we define an implementation for Jason.Encoder.
-        ##
         defimpl Jason.Encoder do
           @moduledoc false
           def encode(%{left: _, right: _} = interval, opts) do
-            empty? = Interval.empty?(interval)
-
-            Jason.Encode.map(
-              %{
-                empty: empty?,
-                left:
-                  if(not Interval.unbounded_left?(interval) and not empty?,
-                    do: %{
-                      inclusive: Interval.inclusive_left?(interval),
-                      value: Interval.left(interval)
-                    }
-                  ),
-                right:
-                  if(not Interval.unbounded_right?(interval) and not empty?,
-                    do: %{
-                      inclusive: Interval.inclusive_right?(interval),
-                      value: Interval.right(interval)
-                    }
-                  )
-              },
-              opts
-            )
+            Jason.Encode.map(Interval.to_map(interval), opts)
           end
         end
       end

@@ -12,6 +12,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `left/1` and `right/1` to extract the left and right values from the interval.
 - Builtin `Jason.Encoder` support.
 - `Interval.__using__` option `jason_encoder` for including encoder. Defaults to `true`.
+- `Interval.to_map/1` to convert an Interval struct to a map suitible for JSON and similar serialization.
 
 ### Changed
 
