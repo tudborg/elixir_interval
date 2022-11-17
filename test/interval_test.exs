@@ -1,4 +1,4 @@
-defmodule IntervalTest do
+defmodule Interval.IntervalTest do
   use ExUnit.Case, async: true
 
   doctest Interval, import: true

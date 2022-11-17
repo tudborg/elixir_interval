@@ -4,6 +4,10 @@ if Application.get_env(:interval, Interval.Integer, true) do
 
     use Interval, type: Integer, discrete: true
 
+    if Code.ensure_loaded?(Interval.Support.Ecto) do
+      use Interval.Support.Ecto, ecto_type: :int4range
+    end
+
     def point_valid?(a), do: is_integer(a)
 
     def size(%__MODULE__{left: {_, a}, right: {_, b}}), do: b - a

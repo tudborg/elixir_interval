@@ -1,4 +1,4 @@
-defmodule IntervalBuiltinTest do
+defmodule Interval.BuiltinTest do
   use ExUnit.Case, async: true
 
   # doctest the default implementations
