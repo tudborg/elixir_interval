@@ -1369,7 +1369,7 @@ defmodule Interval do
   ## Options
 
   - `type` - The internal point type in this interval. *required*
-  - `discrete` - Is this interval discrete? `default: `false`
+  - `discrete` - Is this interval discrete? `default: false`
   - `jason_encoder` - Should it include `Jason.Encoder` implementation? default: `true` 
 
   ## Examples
