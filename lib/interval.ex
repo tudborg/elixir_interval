@@ -11,6 +11,29 @@ defmodule Interval do
   A fully unbounded interval contains all other intervals, except
   the empty interval.
 
+  ## Features
+
+  The key features of this library are
+
+  - Common interval operations built in are
+    - `intersection/2`
+    - `union/2`
+    - `overlaps?/2`
+    - `contains?/2`
+    - `partition/2`
+    - adjacent?
+    - empty?
+    - unbounded?
+  - Built in support for intervals containing
+      - `Integer`
+      - `Float`
+      - `Date`
+      - `DateTime`
+      - `Decimal`
+  - Also implements
+    - `Ecto.Type`
+    - `Jason.Encoder`
+
   ## Interval Notation
 
   Throughout the documentation and comments, you'll see a notation for
@@ -53,6 +76,7 @@ defmodule Interval do
   - `Interval.DateTime` containing points of type `DateTime`
   - `Interval.Float` containing points of type `Float`
   - `Interval.Integer` containing points of type `Integer`
+  - `Interval.Decimal` containing points of type `Decimal` (See https://hexdocs.pm/decimal/2.0.0)
 
   However, you can quite easily implement an interval by implementing
   the `Interval.Behaviour`.
