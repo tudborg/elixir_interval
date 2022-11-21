@@ -47,3 +47,9 @@ if Application.get_env(:interval, Interval.DateTime, true) do
     def infer_implementation(value) when is_struct(value, DateTime), do: Interval.DateTime
   end
 end
+
+if Application.get_env(:interval, Interval.Decimal, true) do
+  defimpl Interval.Intervalable, for: Decimal do
+    def infer_implementation(value) when is_struct(value, Decimal), do: Interval.Decimal
+  end
+end

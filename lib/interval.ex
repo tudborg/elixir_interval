@@ -1205,14 +1205,16 @@ defmodule Interval do
     end
   end
 
-  # Pick the exclusive endpoint if it exists, else pick `a`
+  # Pick the exclusive endpoint if it exists
   defp pick_exclusive({:exclusive, _} = a, _), do: a
   defp pick_exclusive(_, {:exclusive, _} = b), do: b
+  defp pick_exclusive(a, b) when a < b, do: b
   defp pick_exclusive(a, _b), do: a
 
-  # Pick the inclusive endpoint if it exists, else pick `a`
+  # Pick the inclusive endpoint if it exists
   defp pick_inclusive({:inclusive, _} = a, _), do: a
   defp pick_inclusive(_, {:inclusive, _} = b), do: b
+  defp pick_inclusive(a, b) when a < b, do: b
   defp pick_inclusive(a, _b), do: a
 
   # Pick the left point of a union from two left points
@@ -1377,12 +1379,12 @@ defmodule Interval do
       end
   """
   defmacro __using__(opts) do
-    type = Keyword.fetch!(opts, :type)
-    discrete = Keyword.get(opts, :discrete, false)
-    jason_encoder = Keyword.get(opts, :jason_encoder, true)
-
     quote location: :keep,
-          bind_quoted: [jason_encoder: jason_encoder, type: type, discrete: discrete] do
+          bind_quoted: [
+            type: Keyword.fetch!(opts, :type),
+            discrete: Keyword.get(opts, :discrete, false),
+            jason_encoder: Keyword.get(opts, :jason_encoder, true)
+          ] do
       @moduledoc """
       Represents a #{if discrete, do: "discrete", else: "continuous"}
       interval containing `#{type}`

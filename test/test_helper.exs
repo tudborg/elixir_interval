@@ -38,13 +38,23 @@ defmodule Helper do
               "()" -> module.point_step(offset, +1)
             end
 
-          Interval.new(module: module, left: left, right: left + offset, bounds: bounds)
+          Interval.new(
+            module: module,
+            left: left,
+            right: add_offset(left, offset),
+            bounds: bounds
+          )
 
         false ->
-          Interval.new(module: module, left: left, right: left + offset, bounds: bounds)
+          Interval.new(
+            module: module,
+            left: left,
+            right: add_offset(left, offset),
+            bounds: bounds
+          )
       end
 
-      Interval.new(module: module, left: left, right: left + offset, bounds: bounds)
+      Interval.new(module: module, left: left, right: add_offset(left, offset), bounds: bounds)
     end
   end
 
@@ -63,6 +73,14 @@ defmodule Helper do
 
       Interval.new(opts)
     end
+  end
+
+  defp add_offset(value, offset) when is_integer(value), do: value + offset
+  defp add_offset(value, offset) when is_float(value), do: value + offset
+
+  defp add_offset(value, offset) when is_struct(value, Decimal) do
+    Decimal.add(value, offset)
+    |> Decimal.normalize()
   end
 
   def empty_interval(module) do
@@ -94,6 +112,39 @@ defmodule Helper do
         if(Keyword.get(opts, :bounded), do: bounded_interval(Interval.Float, f, pf)),
         if(Keyword.get(opts, :unbounded), do: unbounded_interval(Interval.Float, f)),
         if(Keyword.get(opts, :empty), do: empty_interval(Interval.Float))
+      ]
+      |> Enum.reject(&is_nil/1)
+    )
+  end
+
+  def decimal_interval(opts \\ []) do
+    opts = Keyword.merge([unbounded: true, bounded: true, empty: true], opts)
+    zero = Decimal.new(0)
+
+    f =
+      StreamData.float()
+      |> StreamData.map(&Decimal.from_float/1)
+      |> StreamData.map(&Decimal.normalize/1)
+      |> StreamData.map(fn value ->
+        # When -0 is generated, 0 and -0 isn't the same
+        # term, and the test assertions get's annoying to do.
+        # Instead, just prevent -0 from being generated.
+        case Decimal.compare(value, zero) do
+          :eq -> zero
+          _ -> value
+        end
+      end)
+
+    pf =
+      StreamData.float(min: 0.1)
+      |> StreamData.map(&Decimal.from_float/1)
+      |> StreamData.map(&Decimal.normalize/1)
+
+    StreamData.one_of(
+      [
+        if(Keyword.get(opts, :bounded), do: bounded_interval(Interval.Decimal, f, pf)),
+        if(Keyword.get(opts, :unbounded), do: unbounded_interval(Interval.Decimal, f)),
+        if(Keyword.get(opts, :empty), do: empty_interval(Interval.Decimal))
       ]
       |> Enum.reject(&is_nil/1)
     )
