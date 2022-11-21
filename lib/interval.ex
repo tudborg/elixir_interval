@@ -1417,12 +1417,17 @@ defmodule Interval do
       @behaviour Interval.Behaviour
       @discrete discrete
 
+      @typedoc "An interval of point type `#{type}`"
+      @type t() :: %__MODULE__{}
+
       defstruct left: nil, right: nil
 
+      @spec new(Keyword.t()) :: Interval.t()
       def new(opts \\ []) do
         Interval.new(Keyword.put(opts, :module, __MODULE__))
       end
 
+      @spec discrete?() :: boolean()
       def discrete?(), do: @discrete
 
       ##
