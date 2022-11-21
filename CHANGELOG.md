@@ -18,6 +18,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [v0.3.1] - 2022-11-21
+
+### Added
+
+- Added type and typespecs for builtin types.
+- Added additional documentation in `Interval`
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+### Security
+
 ## [v0.3.0] - 2022-11-21
 
 ### Added
