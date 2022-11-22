@@ -16,6 +16,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+## [v0.3.3] - 2022-11-22
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
 - The optional dependencies was also specified as test and dev only, which
   is not what we want. We want them optional, but all environments.
 
