@@ -1,5 +1,7 @@
-defmodule Interval.Support.EctoTest do
+defmodule Interval.Support.EctoTypeTest do
   use ExUnit.Case, async: true
+
+  alias Interval.Support.EctoType
 
   # We use Interval.Integer as the module to test on
   # since it's a builtin and we know that it can use Ecto.
@@ -73,7 +75,79 @@ defmodule Interval.Support.EctoTest do
     assert @module.dump(nil) == {:ok, nil}
   end
 
-  # Helper to crate a Postgrex.Range struct
+  ##
+  ## Postgrex Range helpers
+  ##
+
+  test "roundtrip conversion of empty into builtins" do
+    empty = range(:empty, :empty, false, false)
+
+    assert empty == to_interval_to_range(empty, Interval.Date)
+    assert empty == to_interval_to_range(empty, Interval.DateTime)
+    assert empty == to_interval_to_range(empty, Interval.Float)
+    assert empty == to_interval_to_range(empty, Interval.Integer)
+  end
+
+  test "roundtrip conversion of unbounded into builtins" do
+    unbound = range(:unbound, :unbound, false, false)
+
+    assert unbound == to_interval_to_range(unbound, Interval.Date)
+    assert unbound == to_interval_to_range(unbound, Interval.DateTime)
+    assert unbound == to_interval_to_range(unbound, Interval.Float)
+    assert unbound == to_interval_to_range(unbound, Interval.Integer)
+  end
+
+  test "Interval.Integer [1,2)" do
+    range = range(1, 2, true, false)
+    assert range == to_interval_to_range(range, Interval.Integer)
+
+    interval = EctoType.from_postgrex_range(range, Interval.Integer)
+
+    assert interval.left == {:inclusive, 1}
+    assert interval.right == {:exclusive, 2}
+  end
+
+  test "Interval.Integer (1,2] (discrete interval normalization)" do
+    range = range(1, 2, false, true)
+    interval = EctoType.from_postgrex_range(range, Interval.Integer)
+
+    assert interval.left == {:inclusive, 2}
+    assert interval.right == {:exclusive, 3}
+
+    normalized_range = EctoType.to_postgrex_range(interval)
+
+    assert normalized_range == range(2, 3, true, false)
+  end
+
+  test "Interval.Float [1.0,2,0)" do
+    range = range(1.0, 2.0, true, false)
+    assert range == to_interval_to_range(range, Interval.Float)
+
+    interval = EctoType.from_postgrex_range(range, Interval.Float)
+
+    assert interval.left == {:inclusive, 1.0}
+    assert interval.right == {:exclusive, 2.0}
+  end
+
+  test "Interval.Float (1.0,2.0] (continuous interval)" do
+    range = range(1.0, 2.0, false, true)
+    interval = EctoType.from_postgrex_range(range, Interval.Float)
+
+    assert interval.left == {:exclusive, 1.0}
+    assert interval.right == {:inclusive, 2.0}
+  end
+
+  ##
+  ## Helpers
+  ##
+
+  # roundtrip into module type and back to range
+  defp to_interval_to_range(range, module) do
+    range
+    |> EctoType.from_postgrex_range(module)
+    |> EctoType.to_postgrex_range(module)
+  end
+
   defp range(lower, upper, lower_inclusive, upper_inclusive) do
     %Postgrex.Range{
       lower: lower,

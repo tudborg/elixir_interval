@@ -4,8 +4,8 @@ if Application.get_env(:interval, Interval.Decimal, true) and Code.ensure_loaded
 
     use Interval, type: Decimal, discrete: false
 
-    if Code.ensure_loaded?(Interval.Support.Ecto) do
-      use Interval.Support.Ecto, ecto_type: :numrange
+    if Interval.Support.EctoType.supported?() do
+      use Interval.Support.EctoType, ecto_type: :numrange
     end
 
     @spec size(t()) :: Decimal.t() | nil
