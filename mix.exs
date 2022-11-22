@@ -80,10 +80,10 @@ defmodule Interval.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:ecto, ">= 3.4.3 and < 4.0.0", only: [:test, :dev], optional: true},
-      {:postgrex, "~> 0.14", only: [:test, :dev], optional: true},
-      {:jason, "~> 1.4", only: [:test, :dev], optional: true},
-      {:decimal, "~> 2.0", only: [:test, :dev], optional: true},
+      {:ecto, ">= 3.4.3 and < 4.0.0", optional: true},
+      {:postgrex, "~> 0.14", optional: true},
+      {:jason, "~> 1.4", optional: true},
+      {:decimal, "~> 2.0", optional: true},
       {:stream_data, "~> 0.5", only: [:test, :dev], runtime: false},
       {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
