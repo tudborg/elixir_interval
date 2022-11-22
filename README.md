@@ -17,7 +17,7 @@ The package can be installed by adding `interval` to your list of dependencies i
 ```elixir
 def deps do
   [
-    {:interval, "~> 0.3.1"}
+    {:interval, "~> 0.3.2"}
   ]
 end
 ```

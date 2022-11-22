@@ -18,6 +18,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Security
 
+## [v0.3.2] - 2022-11-22
+
+### Added
+
+### Changed
+
+### Deprecated
+
+### Removed
+
+### Fixed
+
+- Issue #19. Could not compile when the dependant project did not have Ecto included,
+  which was a bug.
+
+### Security
+
 ## [v0.3.1] - 2022-11-21
 
 ### Added
