@@ -4,8 +4,8 @@ if Application.get_env(:interval, Interval.Integer, true) do
 
     use Interval, type: Integer, discrete: true
 
-    if Code.ensure_loaded?(Interval.Support.Ecto) do
-      use Interval.Support.Ecto, ecto_type: :int4range
+    if Interval.Support.EctoType.supported?() do
+      use Interval.Support.EctoType, ecto_type: :int4range
     end
 
     @spec size(t()) :: integer() | nil
