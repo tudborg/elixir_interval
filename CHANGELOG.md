@@ -16,6 +16,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- The optional dependencies was also specified as test and dev only, which
+  is not what we want. We want them optional, but all environments.
+
 ### Security
 
 ## [v0.3.2] - 2022-11-22
