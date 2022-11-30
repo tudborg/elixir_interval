@@ -1069,6 +1069,63 @@ defmodule Interval do
     }
   end
 
+  @doc false
+  @doc since: "0.3.4"
+  @spec to_inspect_doc(t(), Inspect.Opts.t()) :: Inspect.Algebra.t()
+  def to_inspect_doc(%module{left: _, right: _} = a, opts) do
+    content =
+      case empty?(a) do
+        true ->
+          "empty"
+
+        false ->
+          open =
+            cond do
+              unbounded_left?(a) -> ""
+              inclusive_left?(a) -> "["
+              not inclusive_left?(a) -> "("
+            end
+            |> Inspect.Algebra.color(:list, opts)
+
+          close =
+            cond do
+              unbounded_right?(a) -> ""
+              inclusive_right?(a) -> "]"
+              not inclusive_right?(a) -> ")"
+            end
+            |> Inspect.Algebra.color(:list, opts)
+
+          sep = Inspect.Algebra.color(",", :list, opts)
+
+          Inspect.Algebra.container_doc(
+            open,
+            [left(a), right(a)],
+            close,
+            opts,
+            &to_interval_value_doc/2,
+            separator: sep
+          )
+      end
+
+    prefix =
+      ["#", Inspect.Algebra.to_doc(module, opts), "<"]
+      |> Inspect.Algebra.concat()
+      |> Inspect.Algebra.group()
+
+    postfix = ">"
+
+    Inspect.Algebra.concat([
+      prefix,
+      Inspect.Algebra.nest(content, :cursor, :break),
+      postfix
+    ])
+    |> Inspect.Algebra.group()
+  end
+
+  defp to_interval_value_doc(value, opts)
+  defp to_interval_value_doc(nil, _), do: ""
+  defp to_interval_value_doc(value, opts), do: Inspect.Algebra.to_doc(value, opts)
+
   ##
   ## Helpers
   ##
@@ -1429,6 +1486,14 @@ defmodule Interval do
 
       @spec discrete?() :: boolean()
       def discrete?(), do: @discrete
+
+      ##
+      ## Implement the inspect protocol automatically:
+      ##
+      defimpl Inspect do
+        @moduledoc false
+        def inspect(interval, opts), do: Interval.to_inspect_doc(interval, opts)
+      end
 
       ##
       ## Jason support
