@@ -87,6 +87,19 @@ defmodule Interval.IntervalTest do
                  right: ~U[2021-02-01 00:00:00Z]
                )
              )
+
+    assert 0.0 === Interval.size(Interval.NaiveDateTime.new(left: :empty, right: :empty))
+    assert nil === Interval.size(Interval.NaiveDateTime.new(left: ~N[2021-01-01 00:00:00]))
+    assert nil === Interval.size(Interval.NaiveDateTime.new(right: ~N[2021-01-01 00:00:00]))
+    assert nil === Interval.size(Interval.NaiveDateTime.new())
+
+    assert 31 * 86_400 ===
+             Interval.size(
+               Interval.NaiveDateTime.new(
+                 left: ~N[2021-01-01 00:00:00],
+                 right: ~N[2021-02-01 00:00:00]
+               )
+             )
   end
 
   test "empty?/1" do

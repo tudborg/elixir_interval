@@ -11,6 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `Inspect` protocol implementation for all intervals created with `use Interval`
   (which includes all builtin types) so they now look like `#Interval.Float<[1.0, 3.0)>`
   instead of `%Interval.Float{left: {:inclusive, 1.0}, right: {:exclusive, 3.0}}`
+- Support for intervals of `NaiveDateTime`.
 
 ### Changed
 

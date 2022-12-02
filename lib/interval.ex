@@ -29,6 +29,7 @@ defmodule Interval do
       - `Float`
       - `Date`
       - `DateTime`
+      - `NaiveDateTime`
       - `Decimal`
   - Also implements
     - `Ecto.Type`
@@ -74,6 +75,7 @@ defmodule Interval do
 
   - `Interval.Date` containing points of type `Date`
   - `Interval.DateTime` containing points of type `DateTime`
+  - `Interval.NaiveDateTime` containing points of type `NaiveDateTime`
   - `Interval.Float` containing points of type `Float`
   - `Interval.Integer` containing points of type `Integer`
   - `Interval.Decimal` containing points of type `Decimal` (See https://hexdocs.pm/decimal/2.0.0)

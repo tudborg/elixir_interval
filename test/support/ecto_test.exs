@@ -84,6 +84,7 @@ defmodule Interval.Support.EctoTypeTest do
 
     assert empty == to_interval_to_range(empty, Interval.Date)
     assert empty == to_interval_to_range(empty, Interval.DateTime)
+    assert empty == to_interval_to_range(empty, Interval.NaiveDateTime)
     assert empty == to_interval_to_range(empty, Interval.Float)
     assert empty == to_interval_to_range(empty, Interval.Integer)
   end
@@ -93,6 +94,7 @@ defmodule Interval.Support.EctoTypeTest do
 
     assert unbound == to_interval_to_range(unbound, Interval.Date)
     assert unbound == to_interval_to_range(unbound, Interval.DateTime)
+    assert unbound == to_interval_to_range(unbound, Interval.NaiveDateTime)
     assert unbound == to_interval_to_range(unbound, Interval.Float)
     assert unbound == to_interval_to_range(unbound, Interval.Integer)
   end

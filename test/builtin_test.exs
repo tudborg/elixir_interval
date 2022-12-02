@@ -122,6 +122,20 @@ defmodule Interval.BuiltinTest do
     end
   end
 
+  describe "NaiveDateTime" do
+    test "point_step/2" do
+      assert nil === Interval.NaiveDateTime.point_step(~N[2022-01-01 00:00:00], 2)
+    end
+
+    test "Interval.Intervalable" do
+      assert Interval.NaiveDateTime.new(
+               left: ~N[2022-01-01 00:00:00],
+               right: ~N[2022-01-02 00:00:00]
+             ) ===
+               Interval.new(left: ~N[2022-01-01 00:00:00], right: ~N[2022-01-02 00:00:00])
+    end
+  end
+
   describe "Decimal" do
     test "point_step/2" do
       assert nil === Interval.Decimal.point_step(Decimal.new(1), 2)

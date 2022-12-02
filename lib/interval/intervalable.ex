@@ -48,6 +48,13 @@ if Application.get_env(:interval, Interval.DateTime, true) do
   end
 end
 
+if Application.get_env(:interval, Interval.NaiveDateTime, true) do
+  defimpl Interval.Intervalable, for: NaiveDateTime do
+    def infer_implementation(value) when is_struct(value, NaiveDateTime),
+      do: Interval.NaiveDateTime
+  end
+end
+
 if Application.get_env(:interval, Interval.Decimal, true) do
   defimpl Interval.Intervalable, for: Decimal do
     def infer_implementation(value) when is_struct(value, Decimal), do: Interval.Decimal

@@ -24,6 +24,15 @@ defmodule Interval.InspectTest do
     assert str === "#Interval.DateTime<[~U[2022-01-01 00:00:00Z], ~U[2022-01-02 00:00:00Z])>"
   end
 
+  test "NaiveDateTime" do
+    str =
+      [left: ~N(2022-01-01T00:00:00), right: ~N(2022-01-02T00:00:00)]
+      |> Interval.NaiveDateTime.new()
+      |> inspect()
+
+    assert str === "#Interval.NaiveDateTime<[~N[2022-01-01 00:00:00], ~N[2022-01-02 00:00:00])>"
+  end
+
   test "Decimal" do
     str =
       [left: Decimal.new(1), right: Decimal.new(2)]
@@ -40,5 +49,14 @@ defmodule Interval.InspectTest do
       |> inspect()
 
     assert str === "#Interval.Integer<[1, 2)>"
+  end
+
+  test "Float" do
+    str =
+      [left: 1.0, right: 2.0]
+      |> Interval.Float.new()
+      |> inspect()
+
+    assert str === "#Interval.Float<[1.0, 2.0)>"
   end
 end

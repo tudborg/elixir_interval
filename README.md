@@ -29,6 +29,7 @@ end
 - `Interval.Decimal` A continuous interval between two `Decimal` structs.
 - `Interval.Date` A discrete interval between two `Date` structs.
 - `Interval.DateTime` A continuous interval between two `DateTime` structs.
+- `Interval.NaiveDateTime` A continuous interval between two `NaiveDateTime` structs.
 
 ## Ecto & Postgres `range` types
 
