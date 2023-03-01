@@ -75,7 +75,7 @@ defmodule Interval.MixProject do
   defp dialyzer do
     [
       flags: [:error_handling, :underspecs, :unmatched_returns, :no_return],
-      plt_add_apps: [:ecto]
+      plt_add_apps: [:ecto, :decimal, :jason]
     ]
   end
 

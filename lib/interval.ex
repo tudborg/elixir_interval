@@ -1486,7 +1486,7 @@ defmodule Interval do
         Interval.new(Keyword.put(opts, :module, __MODULE__))
       end
 
-      @spec discrete?() :: boolean()
+      @spec discrete?() :: unquote(@discrete)
       def discrete?(), do: @discrete
 
       ##

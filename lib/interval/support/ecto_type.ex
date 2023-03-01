@@ -12,7 +12,7 @@ defmodule Interval.Support.EctoType do
   @doc """
   Returns if Interval was compiled with support for `Ecto.Type`
   """
-  @spec supported?() :: boolean()
+  @spec supported?() :: unquote(@supported?)
   def supported?(), do: @supported?
 
   if @supported? do
