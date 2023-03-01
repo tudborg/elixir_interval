@@ -8,7 +8,9 @@ defmodule Interval.MixProject do
     [
       app: :interval,
       description: """
-      Interval / range operations on DateTime, Integer, Float and anything else.
+      Interval operations on Decimal, DateTime, Integer, Float, etc.
+      with Ecto support for Postgres Range types,
+      and implementing intervals over your own custom structs.
       """,
       version: @version,
       elixir: "~> 1.12",
