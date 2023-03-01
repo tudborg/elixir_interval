@@ -1,4 +1,4 @@
-# Interval
+# ![Interval](logo.png)
 
 [![CI](https://github.com/tbug/elixir_interval/actions/workflows/ci.yml/badge.svg)](https://github.com/tbug/elixir_interval/actions/workflows/ci.yml)
 [![Hex.pm](https://img.shields.io/hexpm/v/interval.svg)](https://hex.pm/packages/interval)
@@ -9,7 +9,6 @@ Inspired by [PostgreSQL's range types](https://www.postgresql.org/docs/current/r
 
 Find the documentation at https://hexdocs.pm/interval/
 
-![Logo](logo.png)
 
 ## Installation
 
