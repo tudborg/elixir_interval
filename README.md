@@ -9,6 +9,7 @@ Inspired by [PostgreSQL's range types](https://www.postgresql.org/docs/current/r
 
 Find the documentation at https://hexdocs.pm/interval/
 
+![Logo](logo.png)
 
 ## Installation
 
