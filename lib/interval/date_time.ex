@@ -8,7 +8,7 @@ if Application.get_env(:interval, Interval.DateTime, true) do
       use Interval.Support.EctoType, ecto_type: :tstzrange
     end
 
-    @spec size(t()) :: float() | nil
+    @spec size(t()) :: integer() | nil
     def size(%__MODULE__{right: :unbounded}), do: nil
     def size(%__MODULE__{left: :unbounded}), do: nil
     def size(%__MODULE__{left: :empty, right: :empty}), do: 0.0
