@@ -1,4 +1,4 @@
-# ![Interval](logo.png)
+# ![Interval](doc/logo.png)
 
 [![CI](https://github.com/tbug/elixir_interval/actions/workflows/ci.yml/badge.svg)](https://github.com/tbug/elixir_interval/actions/workflows/ci.yml)
 [![Hex.pm](https://img.shields.io/hexpm/v/interval.svg)](https://hex.pm/packages/interval)
