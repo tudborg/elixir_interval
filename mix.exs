@@ -68,6 +68,10 @@ defmodule Interval.MixProject do
         "format --check-formatted",
         "credo suggest --all --format=oneline",
         "test --cover --slowest 5"
+      ],
+      docs: [
+        "docs",
+        &copy_images/1
       ]
     ]
   end
@@ -91,5 +95,9 @@ defmodule Interval.MixProject do
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false}
     ]
+  end
+
+  defp copy_images(_) do
+    File.cp("logo.png", "doc/logo.png")
   end
 end
