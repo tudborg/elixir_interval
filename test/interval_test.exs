@@ -3,13 +3,18 @@ defmodule Interval.IntervalTest do
 
   doctest Interval, import: true
 
+  alias Interval.IntegerInterval
+  alias Interval.FloatInterval
+  alias DateIntervalInterval
+  alias DateTimeIntervalInterval
+
   defp inti(p), do: inti(p, p, "[]")
   defp inti(l, r), do: inti(l, r, nil)
-  defp inti(l, r, bounds), do: Interval.Integer.new(left: l, right: r, bounds: bounds)
+  defp inti(l, r, bounds), do: IntegerInterval.new(l, r, bounds)
 
   # defp floati(p), do: floati(p, p, "[]")
   defp floati(l, r), do: floati(l, r, nil)
-  defp floati(l, r, bounds), do: Interval.Float.new(left: l, right: r, bounds: bounds)
+  defp floati(l, r, bounds), do: FloatInterval.new(l, r, bounds)
 
   test "new/1" do
     # some normal construction
@@ -54,54 +59,6 @@ defmodule Interval.IntervalTest do
     refute floati(1.0, 2.0, "[)") |> Interval.inclusive_right?()
   end
 
-  test "size/1" do
-    # size of  unbounded intervals is  nil
-    assert 0 === Interval.size(inti(:empty, :empty))
-    assert 1 === Interval.size(inti(1, 2))
-    assert nil === Interval.size(inti(nil, 1))
-    assert nil === Interval.size(inti(1, nil))
-    assert nil === Interval.size(inti(nil, nil))
-
-    # size of bounded intervals
-    assert 0.0 === Interval.size(floati(1.0, 1.0, "()"))
-    assert 1.0 === Interval.size(floati(1.0, 2.0))
-    assert nil === Interval.size(floati(1.0, nil))
-    assert nil === Interval.size(floati(nil, 2.0))
-    assert nil === Interval.size(floati(nil, nil))
-
-    assert 0 === Interval.size(Interval.Date.new(left: :empty, right: :empty))
-    assert nil === Interval.size(Interval.Date.new(left: ~D[2021-01-01]))
-    assert nil === Interval.size(Interval.Date.new(right: ~D[2021-01-01]))
-    assert nil === Interval.size(Interval.Date.new())
-    assert 31 === Interval.size(Interval.Date.new(left: ~D[2021-01-01], right: ~D[2021-02-01]))
-
-    assert 0.0 === Interval.size(Interval.DateTime.new(left: :empty, right: :empty))
-    assert nil === Interval.size(Interval.DateTime.new(left: ~U[2021-01-01 00:00:00Z]))
-    assert nil === Interval.size(Interval.DateTime.new(right: ~U[2021-01-01 00:00:00Z]))
-    assert nil === Interval.size(Interval.DateTime.new())
-
-    assert 31 * 86_400 ===
-             Interval.size(
-               Interval.DateTime.new(
-                 left: ~U[2021-01-01 00:00:00Z],
-                 right: ~U[2021-02-01 00:00:00Z]
-               )
-             )
-
-    assert 0.0 === Interval.size(Interval.NaiveDateTime.new(left: :empty, right: :empty))
-    assert nil === Interval.size(Interval.NaiveDateTime.new(left: ~N[2021-01-01 00:00:00]))
-    assert nil === Interval.size(Interval.NaiveDateTime.new(right: ~N[2021-01-01 00:00:00]))
-    assert nil === Interval.size(Interval.NaiveDateTime.new())
-
-    assert 31 * 86_400 ===
-             Interval.size(
-               Interval.NaiveDateTime.new(
-                 left: ~N[2021-01-01 00:00:00],
-                 right: ~N[2021-02-01 00:00:00]
-               )
-             )
-  end
-
   test "empty?/1" do
     # (1,1) should also be empty
     assert Interval.empty?(inti(1, 1, "()"))
@@ -119,14 +76,14 @@ defmodule Interval.IntervalTest do
     refute Interval.empty?(inti(1, 3, "()"))
 
     # Check that even non-normalized intervals correctly indicates empty
-    non_normalized_1 = %Interval.Integer{
+    non_normalized_1 = %IntegerInterval{
       left: {:exclusive, 1},
       right: {:exclusive, 2}
     }
 
     assert Interval.empty?(non_normalized_1)
 
-    non_normalized_2 = %Interval.Integer{
+    non_normalized_2 = %IntegerInterval{
       left: {:exclusive, 1},
       right: {:inclusive, 1}
     }
@@ -180,8 +137,8 @@ defmodule Interval.IntervalTest do
     refute Interval.adjacent_left_of?(inti(1, 2), inti(nil, nil))
 
     # non-normalized bounds should raise:
-    a = %Interval.Integer{left: :unbounded, right: {:inclusive, 1}}
-    b = %Interval.Integer{left: {:inclusive, 1}, right: :unbounded}
+    a = %IntegerInterval{left: :unbounded, right: {:inclusive, 1}}
+    b = %IntegerInterval{left: {:inclusive, 1}, right: :unbounded}
 
     assert_raise ArgumentError, fn ->
       Interval.adjacent_left_of?(a, b)
@@ -195,8 +152,8 @@ defmodule Interval.IntervalTest do
     refute Interval.adjacent_right_of?(inti(nil, nil), inti(1, 2))
 
     # non-normalized bounds should raise:
-    a = %Interval.Integer{left: {:inclusive, 1}, right: :unbounded}
-    b = %Interval.Integer{left: :unbounded, right: {:inclusive, 1}}
+    a = %IntegerInterval{left: {:inclusive, 1}, right: :unbounded}
+    b = %IntegerInterval{left: :unbounded, right: {:inclusive, 1}}
 
     assert_raise ArgumentError, fn ->
       Interval.adjacent_right_of?(a, b)
@@ -322,31 +279,5 @@ defmodule Interval.IntervalTest do
       |> Enum.reduce(&Interval.union/2)
 
     assert a === b
-  end
-
-  test "to_map/1" do
-    assert Interval.to_map(inti(1, 4)) ===
-             %{
-               type: "Interval.Integer",
-               empty: false,
-               left: %{inclusive: true, value: 1},
-               right: %{inclusive: false, value: 4}
-             }
-
-    assert Interval.to_map(inti(1, nil)) ===
-             %{
-               type: "Interval.Integer",
-               empty: false,
-               left: %{inclusive: true, value: 1},
-               right: nil
-             }
-
-    assert Interval.to_map(inti(1, 1)) ===
-             %{
-               type: "Interval.Integer",
-               empty: true,
-               left: nil,
-               right: nil
-             }
   end
 end

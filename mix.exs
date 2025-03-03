@@ -1,16 +1,16 @@
 defmodule Interval.MixProject do
   use Mix.Project
 
-  @version "0.3.4"
+  @version "1.0.0"
   @source_url "https://github.com/tbug/elixir_interval"
 
   def project do
     [
       app: :interval,
       description: """
-      Interval operations on Decimal, DateTime, Integer, Float, etc.
-      with Ecto support for Postgres Range types,
-      and implementing intervals over your own custom structs.
+      Interval/range operations on Decimal, DateTime, Integer, Float, etc.
+      Ecto support for Postgres range types like int4range, daterange, tstzrange, etc.
+      Implement intervals over your own custom data.
       """,
       version: @version,
       elixir: "~> 1.12",
@@ -79,7 +79,7 @@ defmodule Interval.MixProject do
   defp dialyzer do
     [
       flags: [:error_handling, :underspecs, :unmatched_returns, :no_return],
-      plt_add_apps: [:ecto, :decimal, :jason]
+      plt_add_apps: [:ecto, :decimal]
     ]
   end
 
@@ -88,9 +88,8 @@ defmodule Interval.MixProject do
     [
       {:ecto, ">= 3.4.3 and < 4.0.0", optional: true},
       {:postgrex, "~> 0.14", optional: true},
-      {:jason, "~> 1.4", optional: true},
       {:decimal, "~> 2.0", optional: true},
-      {:stream_data, "~> 0.5", only: [:test, :dev], runtime: false},
+      {:stream_data, "~> 1.0", only: [:test, :dev], runtime: false},
       {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false}

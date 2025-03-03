@@ -1,5 +1,5 @@
-if Application.get_env(:interval, Interval.Integer, true) do
-  defmodule Interval.Integer do
+if Application.get_env(:interval, Interval.IntegerInterval, true) do
+  defmodule Interval.IntegerInterval do
     @moduledoc false
 
     use Interval, type: Integer, discrete: true

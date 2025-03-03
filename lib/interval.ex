@@ -33,7 +33,6 @@ defmodule Interval do
       - `Decimal`
   - Also implements
     - `Ecto.Type`
-    - `Jason.Encoder`
 
   ## Interval Notation
 
@@ -73,12 +72,12 @@ defmodule Interval do
   This library ships with a few different types of intervals.
   The built-in intervals are:
 
-  - `Interval.Date` containing points of type `Date`
-  - `Interval.DateTime` containing points of type `DateTime`
-  - `Interval.NaiveDateTime` containing points of type `NaiveDateTime`
-  - `Interval.Float` containing points of type `Float`
-  - `Interval.Integer` containing points of type `Integer`
-  - `Interval.Decimal` containing points of type `Decimal` (See https://hexdocs.pm/decimal/2.0.0)
+  - `Interval.DateInterval` containing points of type `Date`
+  - `Interval.DateTimeInterval` containing points of type `DateTime`
+  - `Interval.NaiveDateTimeInterval` containing points of type `NaiveDateTime`
+  - `Interval.FloatIntervalInterval` containing points of type `Float`
+  - `Interval.IntegerIntervalInterval` containing points of type `Integer`
+  - `Interval.DecimalInterval` containing points of type `Decimal` (See https://hexdocs.pm/decimal/2.0.0)
 
   However, you can quite easily implement an interval by implementing
   the `Interval.Behaviour`.
@@ -124,7 +123,7 @@ defmodule Interval do
 
   ## Create an Interval
 
-  See `new/1`.
+  See `new/1`
 
   ## Normalization
 
@@ -183,6 +182,11 @@ defmodule Interval do
   """
   @type bound() :: :inclusive | :exclusive
 
+  @typedoc """
+  Options are:  "[]" | "()" | "(]" | "[)" | "[" | "]" | "(" | ")" | ""
+  """
+  @type strbounds() :: String.t()
+
   @doc """
   Create a new interval.
 
@@ -219,36 +223,30 @@ defmodule Interval do
 
   ## Examples
 
-      iex> new(module: Interval.Integer)
+      iex> new(module: Interval.IntegerInterval)
 
-      iex> new(module: Interval.Integer, left: :empty, right: :empty)
+      iex> new(module: Interval.IntegerInterval, left: :empty, right: :empty)
 
-      iex> new(module: Interval.Integer, left: 1)
+      iex> new(module: Interval.IntegerInterval, left: 1)
 
-      iex> new(module: Interval.Integer, left: 1, right: 1, bounds: "[]")
+      iex> new(module: Interval.IntegerInterval, left: 1, right: 1, bounds: "[]")
 
-      iex> new(module: Interval.Integer, left: 10, right: 20, bounds: "()")
+      iex> new(module: Interval.IntegerInterval, left: 10, right: 20, bounds: "()")
   """
   @spec new(Keyword.t()) :: t()
   def new(opts) when is_list(opts) do
-    module = Keyword.get(opts, :module, nil)
+    module = Keyword.fetch!(opts, :module)
     left = Keyword.get(opts, :left, nil)
     right = Keyword.get(opts, :right, nil)
     bounds = Keyword.get(opts, :bounds, nil)
     {left_bound, right_bound} = unpack_bounds(bounds)
-
-    module = module || infer_implementation([left, right])
-
-    if is_nil(module) do
-      raise ArgumentError,
-        message: "No implementation for interval available. Options given: #{inspect(opts)}"
-    end
 
     left_endpoint = normalize_bound(left, left_bound)
     right_endpoint = normalize_bound(right, right_bound)
 
     module
     |> struct!(left: left_endpoint, right: right_endpoint)
+    |> validate!()
     |> normalize()
   end
 
@@ -279,13 +277,13 @@ defmodule Interval do
 
   ## Examples
 
-      iex> empty?(new(module: Interval.Integer, left: 0, right: 0))
+      iex> empty?(new(module: Interval.IntegerInterval, left: 0, right: 0))
       true
 
-      iex> empty?(new(module: Interval.Float, left: 1.0))
+      iex> empty?(new(module: Interval.FloatInterval, left: 1.0))
       false
 
-      iex> empty?(new(module: Interval.Integer, left: 1, right: 2))
+      iex> empty?(new(module: Interval.IntegerInterval, left: 1, right: 2))
       false
 
   """
@@ -345,7 +343,7 @@ defmodule Interval do
 
   ## Example
 
-      iex> left(new(module: Interval.Integer, left: 1, right: 2))
+      iex> left(new(module: Interval.IntegerInterval, left: 1, right: 2))
       1
   """
   @compile {:inline, left: 1}
@@ -362,7 +360,7 @@ defmodule Interval do
 
   ## Example
 
-      iex> right(new(module: Interval.Integer, left: 1, right: 2))
+      iex> right(new(module: Interval.IntegerInterval, left: 1, right: 2))
       2
   """
   @compile {:inline, right: 1}
@@ -378,13 +376,13 @@ defmodule Interval do
 
   ## Examples
 
-      iex> unbounded_left?(new(module: Interval.Integer))
+      iex> unbounded_left?(new(module: Interval.IntegerInterval))
       true
 
-      iex> unbounded_left?(new(module: Interval.Integer, right: 2))
+      iex> unbounded_left?(new(module: Interval.IntegerInterval, right: 2))
       true
 
-      iex> unbounded_left?(new(module: Interval.Integer, left: 1, right: 2))
+      iex> unbounded_left?(new(module: Interval.IntegerInterval, left: 1, right: 2))
       false
 
   """
@@ -400,13 +398,13 @@ defmodule Interval do
 
   ## Examples
 
-      iex> unbounded_right?(new(module: Interval.Integer, right: 1))
+      iex> unbounded_right?(new(module: Interval.IntegerInterval, right: 1))
       false
 
-      iex> unbounded_right?(new(module: Interval.Integer))
+      iex> unbounded_right?(new(module: Interval.IntegerInterval))
       true
 
-      iex> unbounded_right?(new(module: Interval.Integer, left: 1))
+      iex> unbounded_right?(new(module: Interval.IntegerInterval, left: 1))
       true
 
   """
@@ -421,17 +419,17 @@ defmodule Interval do
   value is included in the interval.
 
   > #### Note {: .info}
-  > Discrete intervals (like `Interval.Integer` and `Interval.Date`) are always normalized
+  > Discrete intervals (like `Interval.IntegerInterval` and `Interval.DateInterval`) are always normalized
   > to be left-inclusive right-exclusive (`[)`).
 
 
-      iex> inclusive_left?(new(module: Interval.Float, left: 1.0, right: 2.0, bounds: "[]"))
+      iex> inclusive_left?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "[]"))
       true
 
-      iex> inclusive_left?(new(module: Interval.Float, left: 1.0, right: 2.0, bounds: "[)"))
+      iex> inclusive_left?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "[)"))
       true
 
-      iex> inclusive_left?(new(module: Interval.Float, left: 1.0, right: 2.0, bounds: "()"))
+      iex> inclusive_left?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "()"))
       false
 
   """
@@ -446,27 +444,23 @@ defmodule Interval do
   value is included in the interval.
 
   > #### Note {: .info}
-  > Discrete intervals (like `Interval.Integer` and `Interval.Date`) are always normalized
+  > Discrete intervals (like `Interval.IntegerInterval` and `Interval.Date`) are always normalized
   > to be left-inclusive right-exclusive (`[)`).
 
 
-      iex> inclusive_right?(new(module: Interval.Float, left: 1.0, right: 2.0, bounds: "[]"))
+      iex> inclusive_right?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "[]"))
       true
 
-      iex> inclusive_right?(new(module: Interval.Float, left: 1.0, right: 2.0, bounds: "[)"))
+      iex> inclusive_right?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "[)"))
       false
 
-      iex> inclusive_right?(new(module: Interval.Float, left: 1.0, right: 2.0, bounds: "()"))
+      iex> inclusive_right?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "()"))
       false
 
   """
   @spec inclusive_right?(t()) :: boolean()
   def inclusive_right?(%{right: {:inclusive, _}}), do: true
   def inclusive_right?(%{}), do: false
-
-  @doc since: "0.1.3"
-  @spec size(t()) :: any()
-  def size(%module{} = a), do: module.size(a)
 
   @doc """
   Is `a` strictly left of `b`.
@@ -488,13 +482,13 @@ defmodule Interval do
       # b:    [---)
       # r: false (overlaps)
 
-      iex> strictly_left_of?(new(module: Interval.Integer, left: 1, right: 2), new(module: Interval.Integer, left: 3, right: 4))
+      iex> strictly_left_of?(new(module: Interval.IntegerInterval, left: 1, right: 2), new(module: Interval.IntegerInterval, left: 3, right: 4))
       true
 
-      iex> strictly_left_of?(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 2, right: 4))
+      iex> strictly_left_of?(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 2, right: 4))
       false
 
-      iex> strictly_left_of?(new(module: Interval.Integer, left: 3, right: 4), new(module: Interval.Integer, left: 1, right: 2))
+      iex> strictly_left_of?(new(module: Interval.IntegerInterval, left: 3, right: 4), new(module: Interval.IntegerInterval, left: 1, right: 2))
       false
   """
   @spec strictly_left_of?(t(), t()) :: boolean()
@@ -530,13 +524,13 @@ defmodule Interval do
       # b: [---)
       # r: false (overlaps)
 
-      iex> strictly_right_of?(new(module: Interval.Integer, left: 1, right: 2), new(module: Interval.Integer, left: 3, right: 4))
+      iex> strictly_right_of?(new(module: Interval.IntegerInterval, left: 1, right: 2), new(module: Interval.IntegerInterval, left: 3, right: 4))
       false
 
-      iex> strictly_right_of?(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 2, right: 4))
+      iex> strictly_right_of?(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 2, right: 4))
       false
 
-      iex> strictly_right_of?(new(module: Interval.Integer, left: 3, right: 4), new(module: Interval.Integer, left: 1, right: 2))
+      iex> strictly_right_of?(new(module: Interval.IntegerInterval, left: 3, right: 4), new(module: Interval.IntegerInterval, left: 1, right: 2))
       true
   """
   @spec strictly_right_of?(t(), t()) :: boolean()
@@ -573,16 +567,16 @@ defmodule Interval do
   ## Examples
 
 
-      iex> adjacent_left_of?(new(module: Interval.Integer, left: 1, right: 2), new(module: Interval.Integer, left: 2, right: 3))
+      iex> adjacent_left_of?(new(module: Interval.IntegerInterval, left: 1, right: 2), new(module: Interval.IntegerInterval, left: 2, right: 3))
       true
 
-      iex> adjacent_left_of?(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 2, right: 4))
+      iex> adjacent_left_of?(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 2, right: 4))
       false
 
-      iex> adjacent_left_of?(new(module: Interval.Integer, left: 3, right: 4), new(module: Interval.Integer, left: 1, right: 2))
+      iex> adjacent_left_of?(new(module: Interval.IntegerInterval, left: 3, right: 4), new(module: Interval.IntegerInterval, left: 1, right: 2))
       false
 
-      iex> adjacent_left_of?(new(module: Interval.Integer, right: 2, bounds: "[]"), new(module: Interval.Integer, left: 3))
+      iex> adjacent_left_of?(new(module: Interval.IntegerInterval, right: 2, bounds: "[]"), new(module: Interval.IntegerInterval, left: 3))
       true
   """
   @spec adjacent_left_of?(t(), t()) :: boolean()
@@ -628,16 +622,16 @@ defmodule Interval do
 
   ## Examples
 
-      iex> adjacent_right_of?(new(module: Interval.Integer, left: 2, right: 3), new(module: Interval.Integer, left: 1, right: 2))
+      iex> adjacent_right_of?(new(module: Interval.IntegerInterval, left: 2, right: 3), new(module: Interval.IntegerInterval, left: 1, right: 2))
       true
 
-      iex> adjacent_right_of?(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 2, right: 4))
+      iex> adjacent_right_of?(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 2, right: 4))
       false
 
-      iex> adjacent_right_of?(new(module: Interval.Integer, left: 1, right: 2), new(module: Interval.Integer, left: 3, right: 4))
+      iex> adjacent_right_of?(new(module: Interval.IntegerInterval, left: 1, right: 2), new(module: Interval.IntegerInterval, left: 3, right: 4))
       false
 
-      iex> adjacent_right_of?(new(module: Interval.Integer, left: 3), new(module: Interval.Integer, right: 2, bounds: "]"))
+      iex> adjacent_right_of?(new(module: Interval.IntegerInterval, left: 3), new(module: Interval.IntegerInterval, right: 2, bounds: "]"))
       true
   """
   @spec adjacent_right_of?(t(), t()) :: boolean()
@@ -693,35 +687,35 @@ defmodule Interval do
       # [--a--)
       #     [--b--)
 
-      iex> overlaps?(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 2, right: 4))
+      iex> overlaps?(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 2, right: 4))
       true
 
 
       # [--a--)
       #       [--b--)
 
-      iex> overlaps?(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 3, right: 5))
+      iex> overlaps?(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 3, right: 5))
       false
 
 
       # [--a--]
       #       [--b--]
 
-      iex> overlaps?(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 2, right: 4))
+      iex> overlaps?(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 2, right: 4))
       true
 
 
       # (--a--)
       #       (--b--)
 
-      iex> overlaps?(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 3, right: 5))
+      iex> overlaps?(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 3, right: 5))
       false
 
 
       # [--a--)
       #          [--b--)
 
-      iex> overlaps?(new(module: Interval.Integer, left: 1, right: 2), new(module: Interval.Integer, left: 3, right: 4))
+      iex> overlaps?(new(module: Interval.IntegerInterval, left: 1, right: 2), new(module: Interval.IntegerInterval, left: 3, right: 4))
       false
   """
   @spec overlaps?(t(), t()) :: boolean()
@@ -773,22 +767,22 @@ defmodule Interval do
 
   ## Examples
 
-      iex> contains?(new(module: Interval.Integer, left: 1, right: 2), new(module: Interval.Integer, left: 1, right: 2))
+      iex> contains?(new(module: Interval.IntegerInterval, left: 1, right: 2), new(module: Interval.IntegerInterval, left: 1, right: 2))
       true
 
-      iex> contains?(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 2, right: 3))
+      iex> contains?(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 2, right: 3))
       true
 
-      iex> contains?(new(module: Interval.Integer, left: 2, right: 3), new(module: Interval.Integer, left: 1, right: 4))
+      iex> contains?(new(module: Interval.IntegerInterval, left: 2, right: 3), new(module: Interval.IntegerInterval, left: 1, right: 4))
       false
 
-      iex> contains?(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 1, right: 2))
+      iex> contains?(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 1, right: 2))
       true
 
-      iex> contains?(new(module: Interval.Integer, left: 1, right: 2, bounds: "()"), new(module: Interval.Integer, left: 1, right: 3))
+      iex> contains?(new(module: Interval.IntegerInterval, left: 1, right: 2, bounds: "()"), new(module: Interval.IntegerInterval, left: 1, right: 3))
       false
 
-      iex> contains?(new(module: Interval.Integer, right: 1), new(module: Interval.Integer, left: 0, right: 1))
+      iex> contains?(new(module: Interval.IntegerInterval, right: 1), new(module: Interval.IntegerInterval, left: 0, right: 1))
       true
   """
   @spec contains?(t(), t()) :: boolean()
@@ -828,10 +822,10 @@ defmodule Interval do
 
   ## Examples
 
-      iex> contains_point?(new(module: Interval.Integer, left: 1, right: 2), 0)
+      iex> contains_point?(new(module: Interval.IntegerInterval, left: 1, right: 2), 0)
       false
 
-      iex> contains_point?(new(module: Interval.Integer, left: 1, right: 2), 1)
+      iex> contains_point?(new(module: Interval.IntegerInterval, left: 1, right: 2), 1)
       true
   """
   @doc since: "0.1.4"
@@ -863,7 +857,7 @@ defmodule Interval do
 
   The union contains all of the points that are either in `a` or `b`.
 
-  If either `a` or `b` are empty, the returned interval will be empty.
+  If either `a` or `b` are empty, the returned interval will be the non-empty interval.
 
       # a: [---)
       # b:   [---)
@@ -876,19 +870,19 @@ defmodule Interval do
       #     [--B--)
       # [----C----)
 
-      iex> union(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 2, right: 4))
-      new(module: Interval.Integer, left: 1, right: 4)
+      iex> union(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 2, right: 4))
+      new(module: Interval.IntegerInterval, left: 1, right: 4)
 
 
       # [-A-)
       #     [-B-)
       # [---C---)
 
-      iex> union(new(module: Interval.Integer, left: 1, right: 2), new(module: Interval.Integer, left: 2, right: 3))
-      new(module: Interval.Integer, left: 1, right: 3)
+      iex> union(new(module: Interval.IntegerInterval, left: 1, right: 2), new(module: Interval.IntegerInterval, left: 2, right: 3))
+      new(module: Interval.IntegerInterval, left: 1, right: 3)
 
-      iex> union(new(module: Interval.Integer, left: 1, right: 2), new(module: Interval.Integer, left: 3, right: 4))
-      new(module: Interval.Integer, left: 0, right: 0)
+      iex> union(new(module: Interval.IntegerInterval, left: 1, right: 2), new(module: Interval.IntegerInterval, left: 3, right: 4))
+      new(module: Interval.IntegerInterval, left: 0, right: 0)
   """
   @spec union(t(), t()) :: t()
   def union(%module{} = a, %module{} = b) do
@@ -945,31 +939,31 @@ defmodule Interval do
       # a: [----)
       # b:    [----)
       # c:    [-)
-      iex> intersection(new(module: Interval.Integer, left: 1, right: 3), new(module: Interval.Integer, left: 2, right: 4))
-      new(module: Interval.Integer, left: 2, right: 3)
+      iex> intersection(new(module: Interval.IntegerInterval, left: 1, right: 3), new(module: Interval.IntegerInterval, left: 2, right: 4))
+      new(module: Interval.IntegerInterval, left: 2, right: 3)
 
   Continuous:
 
       # a: [----)
       # b:    [----)
       # c:    [-)
-      iex> intersection(new(module: Interval.Float, left: 1.0, right: 3.0), new(module: Interval.Float, left: 2.0, right: 4.0))
-      new(module: Interval.Float, left: 2.0, right: 3.0)
+      iex> intersection(new(module: Interval.FloatInterval, left: 1.0, right: 3.0), new(module: Interval.FloatInterval, left: 2.0, right: 4.0))
+      new(module: Interval.FloatInterval, left: 2.0, right: 3.0)
 
       # a: (----)
       # b:    (----)
       # c:    (-)
       iex> intersection(
-      ...>   new(module: Interval.Float, left: 1.0, right: 3.0, bounds: "()"),
-      ...>   new(module: Interval.Float, left: 2.0, right: 4.0, bounds: "()")
+      ...>   new(module: Interval.FloatInterval, left: 1.0, right: 3.0, bounds: "()"),
+      ...>   new(module: Interval.FloatInterval, left: 2.0, right: 4.0, bounds: "()")
       ...> )
-      new(module: Interval.Float, left: 2.0, right: 3.0, bounds: "()")
+      new(module: Interval.FloatInterval, left: 2.0, right: 3.0, bounds: "()")
 
       # a: [-----)
       # b:   [-------
       # c:   [---)
-      iex> intersection(new(module: Interval.Float, left: 1.0, right: 3.0), new(module: Interval.Float, left: 2.0))
-      new(module: Interval.Float, left: 2.0, right: 3.0)
+      iex> intersection(new(module: Interval.FloatInterval, left: 1.0, right: 3.0), new(module: Interval.FloatInterval, left: 2.0))
+      new(module: Interval.FloatInterval, left: 2.0, right: 3.0)
 
   """
   @spec intersection(t(), t()) :: t()
@@ -1009,14 +1003,14 @@ defmodule Interval do
 
   ## Examples
 
-      iex> partition(new(module: Interval.Integer, left: 1, right: 5, bounds: "[]"), 3)
+      iex> partition(new(module: Interval.IntegerInterval, left: 1, right: 5, bounds: "[]"), 3)
       [
-        new(module: Interval.Integer, left: 1, right: 3, bounds: "[)"),
-        new(module: Interval.Integer, left: 3, right: 3, bounds: "[]"),
-        new(module: Interval.Integer, left: 3, right: 5, bounds: "(]")
+        new(module: Interval.IntegerInterval, left: 1, right: 3, bounds: "[)"),
+        new(module: Interval.IntegerInterval, left: 3, right: 3, bounds: "[]"),
+        new(module: Interval.IntegerInterval, left: 3, right: 5, bounds: "(]")
       ]
 
-      iex> partition(new(module: Interval.Integer, left: 1, right: 5), -10)
+      iex> partition(new(module: Interval.IntegerInterval, left: 1, right: 5), -10)
       []
   """
   @doc since: "0.1.4"
@@ -1034,99 +1028,6 @@ defmodule Interval do
         ]
     end
   end
-
-  @doc """
-  Convert an `t:Interval.t/0` to a map.
-
-  The returned map contains the struct module used for the interval
-  in the `type` key, so that it is possible to reconstruct the interval from the map.
-  """
-  @doc since: "0.3.0"
-  @spec to_map(t()) :: %{
-          type: String.t(),
-          empty: boolean(),
-          left: nil | %{inclusive: boolean(), value: any()},
-          right: nil | %{inclusive: boolean(), value: any()}
-        }
-  def to_map(%module{} = a) do
-    empty? = Interval.empty?(a)
-
-    %{
-      type: Module.split(module) |> Enum.join("."),
-      empty: empty?,
-      left:
-        if(not Interval.unbounded_left?(a) and not empty?,
-          do: %{
-            inclusive: Interval.inclusive_left?(a),
-            value: Interval.left(a)
-          }
-        ),
-      right:
-        if(not Interval.unbounded_right?(a) and not empty?,
-          do: %{
-            inclusive: Interval.inclusive_right?(a),
-            value: Interval.right(a)
-          }
-        )
-    }
-  end
-
-  @doc false
-  @doc since: "0.3.4"
-  @spec to_inspect_doc(t(), Inspect.Opts.t()) :: Inspect.Algebra.t()
-  def to_inspect_doc(%module{left: _, right: _} = a, opts) do
-    content =
-      case empty?(a) do
-        true ->
-          "empty"
-
-        false ->
-          open =
-            cond do
-              unbounded_left?(a) -> ""
-              inclusive_left?(a) -> "["
-              not inclusive_left?(a) -> "("
-            end
-            |> Inspect.Algebra.color(:list, opts)
-
-          close =
-            cond do
-              unbounded_right?(a) -> ""
-              inclusive_right?(a) -> "]"
-              not inclusive_right?(a) -> ")"
-            end
-            |> Inspect.Algebra.color(:list, opts)
-
-          sep = Inspect.Algebra.color(",", :list, opts)
-
-          Inspect.Algebra.container_doc(
-            open,
-            [left(a), right(a)],
-            close,
-            opts,
-            &to_interval_value_doc/2,
-            separator: sep
-          )
-      end
-
-    prefix =
-      ["#", Inspect.Algebra.to_doc(module, opts), "<"]
-      |> Inspect.Algebra.concat()
-      |> Inspect.Algebra.group()
-
-    postfix = ">"
-
-    Inspect.Algebra.concat([
-      prefix,
-      Inspect.Algebra.nest(content, :cursor, :break),
-      postfix
-    ])
-    |> Inspect.Algebra.group()
-  end
-
-  defp to_interval_value_doc(value, opts)
-  defp to_interval_value_doc(nil, _), do: ""
-  defp to_interval_value_doc(value, opts), do: Inspect.Algebra.to_doc(value, opts)
 
   ##
   ## Helpers
@@ -1167,6 +1068,32 @@ defmodule Interval do
     )
   end
 
+  defp validate!(%module{left: left, right: right} = interval) do
+    case left do
+      {_left_bound, left_point} ->
+        if not module.point_valid?(left_point) do
+          raise ArgumentError,
+            message: "#{left_point} not a valid left point in #{module}"
+        end
+
+      _ ->
+        :ok
+    end
+
+    case right do
+      {_right_bound, right_point} ->
+        if not module.point_valid?(right_point) do
+          raise ArgumentError,
+            message: "#{right_point} not a valid right point in #{module}"
+        end
+
+      _ ->
+        :ok
+    end
+
+    interval
+  end
+
   # non-empty non-unbounded Interval:
   defp normalize(
          %module{
@@ -1174,16 +1101,6 @@ defmodule Interval do
            right: {right_bound, right_point} = right
          } = original
        ) do
-    if not module.point_valid?(left_point) do
-      raise ArgumentError,
-        message: "#{left_point} not a valid left point in #{module}"
-    end
-
-    if not module.point_valid?(right_point) do
-      raise ArgumentError,
-        message: "#{right_point} not a valid right point in #{module}"
-    end
-
     type = if module.discrete?(), do: :discrete, else: :continuous
     comp = module.point_compare(left_point, right_point)
 
@@ -1412,33 +1329,6 @@ defmodule Interval do
     nil
   end
 
-  defp infer_implementation(values) do
-    implementations =
-      values
-      # reject nil-values (they mean "unbounded")
-      |> Enum.reject(&is_nil/1)
-      # check that an implementation exists for the value
-      |> Enum.map(&(Interval.Intervalable.impl_for(&1) && &1))
-      # reject if nil implementation
-      |> Enum.reject(&is_nil/1)
-      # call infer_implementation/1 on the remaining values we know has an implementation
-      |> Enum.map(&Interval.Intervalable.infer_implementation/1)
-      # get the unique list of implementations available
-      |> Enum.uniq()
-
-    case implementations do
-      [] ->
-        nil
-
-      [impl] ->
-        impl
-
-      [_first_impl | _] = multiple ->
-        raise ArgumentError,
-          message: "Got multiple potential implementations for intervals: #{inspect(multiple)}"
-    end
-  end
-
   ##
   ## using-macro
   ##
@@ -1453,7 +1343,6 @@ defmodule Interval do
 
   - `type` - The internal point type in this interval. *required*
   - `discrete` - Is this interval discrete? `default: false`
-  - `jason_encoder` - Should it include `Jason.Encoder` implementation? default: `true` 
 
   ## Examples
 
@@ -1462,11 +1351,9 @@ defmodule Interval do
       end
   """
   defmacro __using__(opts) do
-    quote location: :keep,
-          bind_quoted: [
+    quote bind_quoted: [
             type: Keyword.fetch!(opts, :type),
-            discrete: Keyword.get(opts, :discrete, false),
-            jason_encoder: Keyword.get(opts, :jason_encoder, true)
+            discrete: Keyword.get(opts, :discrete, false)
           ] do
       @moduledoc """
       Represents a #{if discrete, do: "discrete", else: "continuous"}
@@ -1478,37 +1365,43 @@ defmodule Interval do
 
       @typedoc "An interval of point type `#{type}`"
       @type t() :: %__MODULE__{}
+      @type point_type() :: unquote(type)
 
       defstruct left: nil, right: nil
 
-      @spec new(Keyword.t()) :: Interval.t()
+      @spec new(left :: point_type(), right :: point_type(), bounds :: Interval.strbounds()) ::
+              t()
+      def new(left, right, bounds \\ "[)") do
+        new(left: left, right: right, bounds: bounds)
+      end
+
       def new(opts \\ []) do
-        Interval.new(Keyword.put(opts, :module, __MODULE__))
+        opts
+        |> Keyword.put(:module, __MODULE__)
+        |> Interval.new()
       end
 
       @spec discrete?() :: unquote(@discrete)
       def discrete?(), do: @discrete
 
-      ##
-      ## Implement the inspect protocol automatically:
-      ##
-      defimpl Inspect do
-        @moduledoc false
-        def inspect(interval, opts), do: Interval.to_inspect_doc(interval, opts)
-      end
-
-      ##
-      ## Jason support
-      ## If Jason is loaded, we define an implementation for Jason.Encoder.
-      ##
-      if jason_encoder and Code.ensure_loaded?(Jason) do
-        defimpl Jason.Encoder do
-          @moduledoc false
-          def encode(%{left: _, right: _} = interval, opts) do
-            Jason.Encode.map(Interval.to_map(interval), opts)
-          end
-        end
-      end
+      # delegate functionality to Interval
+      defdelegate empty?(interval), to: Interval
+      defdelegate left(interval), to: Interval
+      defdelegate right(interval), to: Interval
+      defdelegate unbounded_left?(interval), to: Interval
+      defdelegate unbounded_right?(interval), to: Interval
+      defdelegate inclusive_left?(interval), to: Interval
+      defdelegate inclusive_right?(interval), to: Interval
+      defdelegate strictly_left_of?(a, b), to: Interval
+      defdelegate strictly_right_of?(a, b), to: Interval
+      defdelegate adjacent_left_of?(a, b), to: Interval
+      defdelegate adjacent_right_of?(a, b), to: Interval
+      defdelegate overlaps?(a, b), to: Interval
+      defdelegate contains?(a, b), to: Interval
+      defdelegate contains_point?(a, x), to: Interval
+      defdelegate union(a, b), to: Interval
+      defdelegate intersection(a, b), to: Interval
+      defdelegate partition(a, x), to: Interval
     end
   end
 end

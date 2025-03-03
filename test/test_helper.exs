@@ -5,8 +5,11 @@ defmodule Helper do
   Generators for property testing
   """
 
+  alias Interval.FloatInterval
+  alias Interval.DecimalInterval
+  alias Interval.IntegerInterval
+
   import ExUnitProperties
-  alias Interval
 
   def bounds() do
     StreamData.one_of(
@@ -94,9 +97,9 @@ defmodule Helper do
 
     StreamData.one_of(
       [
-        if(Keyword.get(opts, :bounded), do: bounded_interval(Interval.Integer, i, pi)),
-        if(Keyword.get(opts, :unbounded), do: unbounded_interval(Interval.Integer, i)),
-        if(Keyword.get(opts, :empty), do: empty_interval(Interval.Integer))
+        if(Keyword.get(opts, :bounded), do: bounded_interval(IntegerInterval, i, pi)),
+        if(Keyword.get(opts, :unbounded), do: unbounded_interval(IntegerInterval, i)),
+        if(Keyword.get(opts, :empty), do: empty_interval(IntegerInterval))
       ]
       |> Enum.reject(&is_nil/1)
     )
@@ -109,9 +112,9 @@ defmodule Helper do
 
     StreamData.one_of(
       [
-        if(Keyword.get(opts, :bounded), do: bounded_interval(Interval.Float, f, pf)),
-        if(Keyword.get(opts, :unbounded), do: unbounded_interval(Interval.Float, f)),
-        if(Keyword.get(opts, :empty), do: empty_interval(Interval.Float))
+        if(Keyword.get(opts, :bounded), do: bounded_interval(FloatInterval, f, pf)),
+        if(Keyword.get(opts, :unbounded), do: unbounded_interval(FloatInterval, f)),
+        if(Keyword.get(opts, :empty), do: empty_interval(FloatInterval))
       ]
       |> Enum.reject(&is_nil/1)
     )
@@ -142,9 +145,9 @@ defmodule Helper do
 
     StreamData.one_of(
       [
-        if(Keyword.get(opts, :bounded), do: bounded_interval(Interval.Decimal, f, pf)),
-        if(Keyword.get(opts, :unbounded), do: unbounded_interval(Interval.Decimal, f)),
-        if(Keyword.get(opts, :empty), do: empty_interval(Interval.Decimal))
+        if(Keyword.get(opts, :bounded), do: bounded_interval(DecimalInterval, f, pf)),
+        if(Keyword.get(opts, :unbounded), do: unbounded_interval(DecimalInterval, f)),
+        if(Keyword.get(opts, :empty), do: empty_interval(DecimalInterval))
       ]
       |> Enum.reject(&is_nil/1)
     )

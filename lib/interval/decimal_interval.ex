@@ -1,5 +1,5 @@
-if Application.get_env(:interval, Interval.Decimal, true) and Code.ensure_loaded?(Decimal) do
-  defmodule Interval.Decimal do
+if Application.get_env(:interval, Interval.DecimalInterval, true) and Code.ensure_loaded?(Decimal) do
+  defmodule Interval.DecimalInterval do
     @moduledoc false
 
     use Interval, type: Decimal, discrete: false
@@ -7,12 +7,6 @@ if Application.get_env(:interval, Interval.Decimal, true) and Code.ensure_loaded
     if Interval.Support.EctoType.supported?() do
       use Interval.Support.EctoType, ecto_type: :numrange
     end
-
-    @spec size(t()) :: Decimal.t() | nil
-    def size(%__MODULE__{left: {_, a}, right: {_, b}}), do: Decimal.sub(b, a)
-    def size(%__MODULE__{left: :empty, right: :empty}), do: Decimal.new(0)
-    def size(%__MODULE__{left: :unbounded}), do: nil
-    def size(%__MODULE__{right: :unbounded}), do: nil
 
     @spec point_valid?(Decimal.t()) :: boolean()
     def point_valid?(a), do: is_struct(a, Decimal)

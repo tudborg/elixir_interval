@@ -1,5 +1,5 @@
-if Application.get_env(:interval, Interval.Float, true) do
-  defmodule Interval.Float do
+if Application.get_env(:interval, Interval.FloatInterval, true) do
+  defmodule Interval.FloatInterval do
     @moduledoc false
 
     use Interval, type: Float, discrete: false
@@ -8,11 +8,7 @@ if Application.get_env(:interval, Interval.Float, true) do
       use Interval.Support.EctoType, ecto_type: :floatrange
     end
 
-    @spec size(t()) :: float() | nil
-    def size(%__MODULE__{left: {_, a}, right: {_, b}}), do: b - a
-    def size(%__MODULE__{left: :empty, right: :empty}), do: 0.0
-    def size(%__MODULE__{left: :unbounded}), do: nil
-    def size(%__MODULE__{right: :unbounded}), do: nil
+    def point_subtract(a, b) when is_float(a) and is_float(b), do: a - b
 
     @spec point_valid?(float()) :: boolean()
     def point_valid?(a), do: is_float(a)
