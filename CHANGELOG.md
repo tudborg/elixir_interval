@@ -4,15 +4,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0]
 
 ### Added
 
+- All interval implementations now defdelegate all Interval API functions, such that you can
+  call e.g. `union/2` on your own Interval type: `MyInterval.union(a, b)`
+- Introducing a `new/3` helper that takes arguments `new(left, right, bounds \\ "[)")`.
+
 ### Changed
+
+- All builtins are now suffixed with "Interval" which makes aliasing easier, e.g. `alias Interval.DateInterval`
 
 ### Deprecated
 
 ### Removed
+
+- Removed the Inspect protocol. Inspect now outputs the struct as-is.
+- `size/1` - Currently no good way of doing it generally. You can easily implement this yourself.
 
 ### Fixed
 
@@ -35,7 +44,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - Fixed typespec on `size/1` for `Interval.DateTime`
-- Fixed dialyzer warnings. 
+- Fixed dialyzer warnings.
+- Incorrect docs for `union/2` (#25)
 
 ## [v0.3.3] - 2022-11-22
 

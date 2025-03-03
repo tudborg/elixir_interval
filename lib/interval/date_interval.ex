@@ -1,5 +1,5 @@
-if Application.get_env(:interval, Interval.Date, true) do
-  defmodule Interval.Date do
+if Application.get_env(:interval, Interval.DateInterval, true) do
+  defmodule Interval.DateInterval do
     @moduledoc false
 
     use Interval, type: Date, discrete: true
@@ -7,12 +7,6 @@ if Application.get_env(:interval, Interval.Date, true) do
     if Interval.Support.EctoType.supported?() do
       use Interval.Support.EctoType, ecto_type: :daterange
     end
-
-    @spec size(t()) :: integer() | nil
-    def size(%__MODULE__{right: :unbounded}), do: nil
-    def size(%__MODULE__{left: :unbounded}), do: nil
-    def size(%__MODULE__{left: :empty, right: :empty}), do: 0
-    def size(%__MODULE__{left: {_, a}, right: {_, b}}), do: Date.diff(b, a)
 
     @spec point_valid?(Date.t()) :: boolean()
     def point_valid?(a), do: is_struct(a, Date)

@@ -1,5 +1,5 @@
-if Application.get_env(:interval, Interval.NaiveDateTime, true) do
-  defmodule Interval.NaiveDateTime do
+if Application.get_env(:interval, Interval.NaiveDateTimeInterval, true) do
+  defmodule Interval.NaiveDateTimeInterval do
     @moduledoc false
 
     use Interval, type: NaiveDateTime, discrete: false
@@ -7,12 +7,6 @@ if Application.get_env(:interval, Interval.NaiveDateTime, true) do
     if Interval.Support.EctoType.supported?() do
       use Interval.Support.EctoType, ecto_type: :tstzrange
     end
-
-    @spec size(t()) :: integer() | nil
-    def size(%__MODULE__{right: :unbounded}), do: nil
-    def size(%__MODULE__{left: :unbounded}), do: nil
-    def size(%__MODULE__{left: :empty, right: :empty}), do: 0.0
-    def size(%__MODULE__{left: {_, a}, right: {_, b}}), do: NaiveDateTime.diff(b, a)
 
     @spec point_valid?(NaiveDateTime.t()) :: boolean()
     def point_valid?(a), do: is_struct(a, NaiveDateTime)

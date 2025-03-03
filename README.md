@@ -17,29 +17,29 @@ The package can be installed by adding `interval` to your list of dependencies i
 ```elixir
 def deps do
   [
-    {:interval, "~> 0.3.4"}
+    {:interval, "~> 0.4.0"}
   ]
 end
 ```
 
 ## Built-in Interval Types
 
-- `Interval.Integer` A discrete interval between two integers.
-- `Interval.Float` A continuous interval between two floats.
-- `Interval.Decimal` A continuous interval between two `Decimal` structs.
-- `Interval.Date` A discrete interval between two `Date` structs.
-- `Interval.DateTime` A continuous interval between two `DateTime` structs.
-- `Interval.NaiveDateTime` A continuous interval between two `NaiveDateTime` structs.
+- `Interval.IntegerInterval` A discrete interval between two integers.
+- `Interval.FloatInterval` A continuous interval between two floats.
+- `Interval.DecimalInterval` A continuous interval between two `Decimal` structs.
+- `Interval.DateInterval` A discrete interval between two `Date` structs.
+- `Interval.DateTimeInterval` A continuous interval between two `DateTime` structs.
+- `Interval.NaiveDateTimeInterval` A continuous interval between two `NaiveDateTime` structs.
 
 ## Ecto & Postgres `range` types
 
-The builtin types (Like `Interval.DateTime`) can be used as an `Ecto.Type` out
+The builtin types (Like `Interval.DateTimeInterval`) can be used as an `Ecto.Type` out
 of the box:
 
 ```elixir
 # ...
   schema "reservations" do
-    field :period, Interval.DateTime
+    field :period, Interval.DateTimeInterval
     # ...
   end
 # ...
@@ -65,12 +65,6 @@ defmodule Interval.Decimal do
     use Interval.Support.EctoType, ecto_type: :numrange
   end
 
-  @spec size(t()) :: Decimal.t() | nil
-  def size(%__MODULE__{left: {_, a}, right: {_, b}}), do: Decimal.sub(b, a)
-  def size(%__MODULE__{left: :empty, right: :empty}), do: Decimal.new(0)
-  def size(%__MODULE__{left: :unbounded}), do: nil
-  def size(%__MODULE__{right: :unbounded}), do: nil
-
   @spec point_valid?(Decimal.t()) :: boolean()
   def point_valid?(a), do: is_struct(a, Decimal)
 
@@ -93,14 +87,16 @@ As you can see, defining your own interval types is pretty easy.
 Integer intervals are discrete intervals (just like the `int4range` in postgres).
 
 ```elixir
-a = Interval.Integer.new(left: 1, right: 4, bounds: "[]")
-b = Interval.Integer.new(left: 2, right: 5, bounds: "[]")
+alias Interval.IntegerInterval
+# ...
+a = IntegerInterval.new(left: 1, right: 4, bounds: "[]")
+b = IntegerInterval.new(left: 2, right: 5, bounds: "[]")
 
-assert Interval.contains?(a, b)
-assert Interval.overlaps?(a, b)
+assert IntegerInterval.contains?(a, b)
+assert IntegerInterval.overlaps?(a, b)
 
-c = Interval.intersection(a, b) # [2, 4]
-d = Interval.union(a, b) # [1, 5]
+c = IntegerInterval.intersection(a, b) # [2, 4]
+d = IntegerInterval.union(a, b) # [1, 5]
 ```
 
 Discrete intervals are always normalized to the bound form `[)` (just like in postgres).
@@ -111,13 +107,15 @@ Discrete intervals are always normalized to the bound form `[)` (just like in po
 DateTime intervals are continuous intervals (just like `tstzrange` in postgrex).
 
 ```elixir
+alias Interval.DateTimeInterval
+# ...
 # default bound is  "[)"
-y2022 = Interval.DateTime.new(left: ~U[2022-01-01 00:00:00Z], right: ~U[2023-01-01 00:00:00Z])
-x = Interval.DateTime.new(left: ~U[2018-07-01 00:00:00Z], right: ~U[2022-03-01 00:00:00Z])
+y2022 = DateTimeInterval.new(left: ~U[2022-01-01 00:00:00Z], right: ~U[2023-01-01 00:00:00Z])
+x = DateTimeInterval.new(left: ~U[2018-07-01 00:00:00Z], right: ~U[2022-03-01 00:00:00Z])
 
-Interval.intersection(y2022, x)
+DateTimeInterval.intersection(y2022, x)
 
-# %Interval.DateTime{
+# %DateTimeInterval{
 #   left: {:inclusive, ~U[2022-01-01 00:00:00Z]},
 #   right: {:exclusive, ~U[2022-03-01 00:00:00Z]}
 # }

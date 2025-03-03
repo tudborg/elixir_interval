@@ -1,8 +1,8 @@
-defmodule Interval.IntegerIntervalPropertyTest do
+defmodule IntegerIntervalIntervalPropertyTest do
   use ExUnit.Case, async: true
   use ExUnitProperties
 
-  alias Interval
+  alias Interval.IntegerInterval
 
   property "overlaps?/2 is commutative" do
     check all(
@@ -88,7 +88,7 @@ defmodule Interval.IntegerIntervalPropertyTest do
                 :ok
 
               {:exclusive, p} ->
-                assert Interval.contains_point?(a, Interval.Integer.point_step(p, -1))
+                assert Interval.contains_point?(a, IntegerInterval.point_step(p, -1))
             end
           end
 
@@ -103,7 +103,7 @@ defmodule Interval.IntegerIntervalPropertyTest do
                 :ok
 
               {:exclusive, p} ->
-                assert Interval.contains_point?(b, Interval.Integer.point_step(p, -1))
+                assert Interval.contains_point?(b, IntegerInterval.point_step(p, -1))
             end
           end
       end
