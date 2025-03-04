@@ -35,14 +35,16 @@ defmodule Interval.MixProject do
     [
       name: "Interval",
       source_url: @source_url,
-      # homepage_url: "https://github.com/tbug/interval_elixir",
       docs: [
+        assets: %{
+          "assets" => "assets"
+        },
         skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
         source_ref: "v#{@version}",
-        main: "Interval",
+        main: "readme",
         extras: [
-          "README.md",
-          "CHANGELOG.md"
+          "README.md": [filename: "readme", title: "Readme"],
+          "CHANGELOG.md": []
         ]
       ]
     ]
@@ -69,10 +71,6 @@ defmodule Interval.MixProject do
         "format --check-formatted",
         "credo suggest --all --format=oneline",
         "test --cover --slowest 5"
-      ],
-      docs: [
-        "docs",
-        &copy_images/1
       ]
     ]
   end
@@ -95,9 +93,5 @@ defmodule Interval.MixProject do
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false}
     ]
-  end
-
-  defp copy_images(_) do
-    File.cp("logo.png", "doc/logo.png")
   end
 end

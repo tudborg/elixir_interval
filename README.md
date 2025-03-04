@@ -1,4 +1,4 @@
-# ![Interval](logo.png)
+# ![Interval](assets/banner.png "Interval")
 
 [![CI](https://github.com/tbug/elixir_interval/actions/workflows/ci.yml/badge.svg)](https://github.com/tbug/elixir_interval/actions/workflows/ci.yml)
 [![Hex.pm](https://img.shields.io/hexpm/v/interval.svg)](https://hex.pm/packages/interval)
@@ -22,19 +22,10 @@ def deps do
 end
 ```
 
-## Built-in Interval Types
+## Ecto & Postgres support
 
-- `Interval.IntegerInterval` A discrete interval between two integers.
-- `Interval.FloatInterval` A continuous interval between two floats.
-- `Interval.DecimalInterval` A continuous interval between two `Decimal` structs.
-- `Interval.DateInterval` A discrete interval between two `Date` structs.
-- `Interval.DateTimeInterval` A continuous interval between two `DateTime` structs.
-- `Interval.NaiveDateTimeInterval` A continuous interval between two `NaiveDateTime` structs.
-
-## Ecto & Postgres `range` types
-
-The builtin types (Like `Interval.DateTimeInterval`) can be used as an `Ecto.Type` out
-of the box:
+The builtin types (Like `Interval.DateTimeInterval`) can be used as an `Ecto.Type`
+which will convert to Postgres' range types.
 
 ```elixir
 # ...
@@ -44,6 +35,19 @@ of the box:
   end
 # ...
 ```
+
+
+## Built-in Interval Types
+
+- `Interval.IntegerInterval` A discrete interval between two integers.
+- `Interval.FloatInterval` A continuous interval between two floats.
+- `Interval.DecimalInterval` A continuous interval between two `Decimal` structs.
+- `Interval.DateInterval` A discrete interval between two `Date` structs.
+- `Interval.DateTimeInterval` A continuous interval between two `DateTime` structs.
+- `Interval.NaiveDateTimeInterval` A continuous interval between two `NaiveDateTime` structs.
+
+  See `Interval` for reference documentation on the available API functions.
+
 
 Note though, that this feature only works with `Postgrex`, as the
 intervals are converted to a `Postgrex.Range` struct which maps to the correct
