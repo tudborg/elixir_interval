@@ -8,17 +8,15 @@ if Application.get_env(:interval, Interval.FloatInterval, true) do
       use Interval.Support.EctoType, ecto_type: :floatrange
     end
 
-    def point_subtract(a, b) when is_float(a) and is_float(b), do: a - b
-
-    @spec point_valid?(float()) :: boolean()
-    def point_valid?(a), do: is_float(a)
+    @spec point_normalize(any()) :: {:ok, float()} | :error
+    def point_normalize(-0.0), do: {:ok, +0.0}
+    def point_normalize(a) when is_float(a), do: {:ok, a}
+    def point_normalize(_), do: :error
 
     @spec point_compare(float(), float()) :: :lt | :eq | :gt
     def point_compare(a, a) when is_float(a), do: :eq
     def point_compare(a, b) when is_float(a) and is_float(b) and a > b, do: :gt
     def point_compare(a, b) when is_float(a) and is_float(b) and a < b, do: :lt
-    # +0.0 compared with -0.0 is equal but not identical
-    def point_compare(a, b) when is_float(a) and is_float(b) and a == b, do: :eq
 
     @spec point_step(float(), any()) :: nil
     def point_step(a, _n) when is_float(a), do: nil

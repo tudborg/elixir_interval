@@ -8,12 +8,16 @@ if Application.get_env(:interval, Interval.DateTimeInterval, true) do
       use Interval.Support.EctoType, ecto_type: :tstzrange
     end
 
-    @spec point_valid?(DateTime.t()) :: boolean()
-    def point_valid?(a), do: is_struct(a, DateTime)
+    @impl true
+    @spec point_normalize(any()) :: {:ok, DateTime.t()} | :error
+    def point_normalize(a) when is_struct(a, DateTime), do: {:ok, a}
+    def point_normalize(_), do: :error
 
+    @impl true
     @spec point_compare(DateTime.t(), DateTime.t()) :: :lt | :eq | :gt
     defdelegate point_compare(a, b), to: DateTime, as: :compare
 
+    @impl true
     @spec point_step(DateTime.t(), any()) :: nil
     def point_step(%DateTime{}, _n), do: nil
   end

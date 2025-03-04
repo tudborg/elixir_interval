@@ -251,23 +251,18 @@ defmodule Interval do
     bounds = Keyword.get(opts, :bounds, nil)
     {left_bound, right_bound} = unpack_bounds(bounds)
 
-    left_endpoint = normalize_bound(left, left_bound)
-    right_endpoint = normalize_bound(right, right_bound)
-
-    module
-    |> struct!(left: left_endpoint, right: right_endpoint)
-    |> validate!()
-    |> normalize()
+    left_endpoint = normalize_endpoint(module, left, left_bound)
+    right_endpoint = normalize_endpoint(module, right, right_bound)
+    normalize(struct!(module, left: left_endpoint, right: right_endpoint))
   end
 
-  defp normalize_bound(point, bound) do
+  defp normalize_endpoint(module, point, bound) do
     case {point, bound} do
       {:empty, _} -> :empty
       {nil, _} -> :unbounded
-      {:unbound, _} -> :unbounded
       {_, :unbounded} -> :unbounded
-      {_, :inclusive} -> {:inclusive, point}
-      {_, :exclusive} -> {:exclusive, point}
+      {_, :inclusive} -> {:inclusive, normalize_point!(module, point)}
+      {_, :exclusive} -> {:exclusive, normalize_point!(module, point)}
     end
   end
 
@@ -301,21 +296,18 @@ defmodule Interval do
   def empty?(a)
   def empty?(%{left: :unbounded}), do: false
   def empty?(%{right: :unbounded}), do: false
-  def empty?(%{left: :empty, right: :empty}), do: true
 
-  # If the interval is not properly normalized, we don't want to give an
-  # incorrect answer, so we do the math to check if the interval is indeed empty:
-  def empty?(%{
-        left: {:exclusive, p},
-        right: {:exclusive, p}
-      }) do
-    true
-  end
+  # if either side is empty, the interval is empty (normalized form will ensure both are set empty)
+  def empty?(%{left: :empty}), do: true
+  def empty?(%{right: :empty}), do: true
 
-  def empty?(%module{
-        left: {left_bound, left_point},
-        right: {right_bound, right_point}
-      }) do
+  # If the interval is not properly normalized, we have to check for all possible combinations.
+  # an interval is empty if it spans a single point but the point is excluded (from either side)
+  def empty?(%{left: {:exclusive, p}, right: {:exclusive, p}}), do: true
+  def empty?(%{left: {:inclusive, p}, right: {:exclusive, p}}), do: true
+  def empty?(%{left: {:exclusive, p}, right: {:inclusive, p}}), do: true
+
+  def empty?(%module{left: {left_bound, left_point}, right: {right_bound, right_point}}) do
     compare = module.point_compare(left_point, right_point)
 
     cond do
@@ -1076,140 +1068,56 @@ defmodule Interval do
     )
   end
 
-  defp validate!(%module{left: left, right: right} = interval) do
-    case left do
-      {_left_bound, left_point} ->
-        if not module.point_valid?(left_point) do
-          raise ArgumentError,
-            message: "#{left_point} not a valid left point in #{module}"
-        end
+  defp normalize_point!(_module, :empty), do: :empty
+  defp normalize_point!(_module, nil), do: nil
 
-      _ ->
-        :ok
-    end
-
-    case right do
-      {_right_bound, right_point} ->
-        if not module.point_valid?(right_point) do
-          raise ArgumentError,
-            message: "#{right_point} not a valid right point in #{module}"
-        end
-
-      _ ->
-        :ok
-    end
-
-    interval
-  end
-
-  # non-empty non-unbounded Interval:
-  defp normalize(
-         %module{
-           left: {left_bound, left_point} = left,
-           right: {right_bound, right_point} = right
-         } = original
-       ) do
-    type = if module.discrete?(), do: :discrete, else: :continuous
-    comp = module.point_compare(left_point, right_point)
-
-    case {type, comp, left_bound, right_bound} do
-      # left > right is an error:
-      {_, :gt, _, _} ->
-        raise ArgumentError,
-          message: "#{left_point} > #{right_point} which is not valid in an interval #{module}"
-
-      # intervals given as either (p,p), [p,p) or (p,p]
-      # (If you want a single point in an interval, give it as [p,p])
-      # The (p,p) interval is already normalize form
-      {_, :eq, :exclusive, :exclusive} ->
-        new_empty(module)
-
-      # [p,p) and (p,p] is normalized by taking the exlusive endpoint and
-      # setting it as both left and right
-      {_, :eq, :inclusive, :exclusive} ->
-        new_empty(module)
-
-      {_, :eq, :exclusive, :inclusive} ->
-        new_empty(module)
-
-      # otherwise, if the point type is continuous, the the orignal
-      # interval was already normalized form:
-      {:continuous, _, _, _} ->
-        original
-
-      ## Discrete types:
-      # if discrete type, we want to always normalize to bounds == [)
-      # because it makes life a bit easier elsewhere.
-
-      # if both bounds are exclusive, we also need to check for empty, because
-      # we could still have an empty interval like (1,2)
-      # which is the same as (1,1) so we normalize by setting
-      # both endpoints to the same value.
-      {:discrete, _, :exclusive, :exclusive} ->
-        case module.point_compare(module.point_step(left_point, 1), right_point) do
-          :eq ->
-            new_empty(module)
-
-          :lt ->
-            %{original | left: normalize_left_endpoint(module, left)}
-        end
-
-      # Remaining bound combinations are:
-      # [], (], [)
-      # we don't need to touch [), so we only need to deal with
-      # the ones that are upper-inclusive. We want to perform the following
-      # transformations:
-      # [a,b] -> [a, b+1)
-      # (a,b] -> [a+1, b+1)
-      {:discrete, _, :inclusive, :inclusive} ->
-        %{
-          original
-          | right: normalize_right_endpoint(module, right)
-        }
-
-      {:discrete, _, :exclusive, :inclusive} ->
-        %{
-          original
-          | left: normalize_left_endpoint(module, left),
-            right: normalize_right_endpoint(module, right)
-        }
-
-      # Finally, if we have an [) interval, then the original was
-      # valid:
-      {:discrete, :lt, :inclusive, :exclusive} ->
-        original
+  defp normalize_point!(module, point) do
+    case module.point_normalize(point) do
+      {:ok, point} -> point
+      :error -> raise ArgumentError, message: "Invalid point #{inspect(point)} for #{module}"
     end
   end
 
-  # the interval is already empty normalized form
-  defp normalize(%_module{left: :empty, right: :empty} = original) do
-    original
+  defp normalize(%{left: :empty, right: :empty} = interval), do: interval
+
+  defp normalize(%module{} = interval) do
+    case module.discrete?() do
+      true -> normalize_discrete(interval)
+      false -> normalize_continuous(interval)
+    end
   end
 
-  # Either left or right or both must be unbounded
-  defp normalize(%module{left: left, right: right} = original) do
-    %{
-      original
-      | left: normalize_left_endpoint(module, left),
-        right: normalize_right_endpoint(module, right)
-    }
+  defp normalize_continuous(%module{} = interval) do
+    if empty?(interval), do: new_empty(module), else: interval
+  end
+
+  defp normalize_discrete(%module{} = interval) do
+    if empty?(interval) do
+      new_empty(module)
+    else
+      %{
+        interval
+        | left: normalize_left_endpoint(module, interval.left),
+          right: normalize_right_endpoint(module, interval.right)
+      }
+    end
   end
 
   defp normalize_right_endpoint(_module, :unbounded), do: :unbounded
 
-  defp normalize_right_endpoint(module, {right_bound, right_point} = right) do
+  defp normalize_right_endpoint(module, {right_bound, right_point}) do
     case {module.discrete?(), right_bound} do
       {true, :inclusive} -> {:exclusive, module.point_step(right_point, 1)}
-      {_, _} -> right
+      {_, _} -> {right_bound, right_point}
     end
   end
 
   defp normalize_left_endpoint(_module, :unbounded), do: :unbounded
 
-  defp normalize_left_endpoint(module, {left_bound, left_point} = left) do
+  defp normalize_left_endpoint(module, {left_bound, left_point}) do
     case {module.discrete?(), left_bound} do
       {true, :exclusive} -> {:inclusive, module.point_step(left_point, 1)}
-      {_, _} -> left
+      {_, _} -> {left_bound, left_point}
     end
   end
 

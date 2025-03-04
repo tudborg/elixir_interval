@@ -58,7 +58,7 @@ defmodule Interval.Support.EctoType do
         ]
         |> Enum.join()
 
-      module.new(left: range.lower, right: range.upper, bounds: bounds)
+      module.new(left: from_point(range.lower), right: from_point(range.upper), bounds: bounds)
     end
 
     @doc """
@@ -86,5 +86,9 @@ defmodule Interval.Support.EctoType do
     defp to_point(:empty), do: {:empty, false}
     defp to_point({:inclusive, point}), do: {point, true}
     defp to_point({:exclusive, point}), do: {point, false}
+
+    defp from_point(:unbound), do: nil
+    defp from_point(:empty), do: :empty
+    defp from_point(point), do: point
   end
 end

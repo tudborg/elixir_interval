@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - All builtins are now suffixed with "Interval" which makes aliasing easier, e.g. `alias Interval.DateInterval`
+- Interval modules must now implement `point_normalize/1` instead of `point_valid?/1`, which
+  allows the module to coerce values into canonical values (i.e. -0.0 to +0.0, for OTP 27)
 
 ### Deprecated
 
@@ -22,6 +24,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Removed the Inspect protocol. Inspect now outputs the struct as-is.
 - `size/1` - Currently no good way of doing it generally. You can easily implement this yourself.
+- `new/1` will no longer accept `:unbound` (this came from the Ecto.Type, but not it handles this conversion interally to not polute `Interval`)
 
 ### Fixed
 

@@ -44,9 +44,9 @@ defmodule Interval.Behaviour do
   @callback discrete?() :: boolean()
 
   @doc """
-  Is the given argument a valid point in this Interval implementation.
+  Normalize a point to a canonical form. Returns :error if the point is invalid.
   """
-  @callback point_valid?(Interval.point()) :: boolean()
+  @callback point_normalize(Interval.point()) :: :error | {:ok, Interval.point()}
 
   @doc """
   Compare two points, returning if `a == b`, `a > b` or `a < b`.

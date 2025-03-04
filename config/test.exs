@@ -1,3 +1,3 @@
 import Config
 
-config :stream_data, max_runs: 100
+config :stream_data, max_runs: 200
