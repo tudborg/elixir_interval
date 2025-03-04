@@ -1,5 +1,10 @@
 defmodule Interval do
   @moduledoc """
+  Interval - A library for working with intervals in Elixir.
+
+  It is modelled after Postgres' range types. In cases where behaviour is ambiguous,
+  the "correct" behaviour is whatever Postgres does.
+
   An interval represents the points between two endpoints.
 
   The interval can be empty.
@@ -48,7 +53,7 @@ defmodule Interval do
       (left-exclusive, right-exclusive)
       [left-inclusive, right-exclusive)
       (left-exclusive, right-inclusive]
-      :empty
+      empty
 
   An unbounded interval is written by omitting the bound type and point:
 
