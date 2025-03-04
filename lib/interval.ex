@@ -356,7 +356,6 @@ defmodule Interval do
       iex> left(new(module: Interval.IntegerInterval, left: 1, right: 2))
       1
   """
-  @compile {:inline, left: 1}
   @spec left(t()) :: point()
   def left(%{left: {_, value}}), do: value
   def left(%{left: _}), do: nil
@@ -373,7 +372,6 @@ defmodule Interval do
       iex> right(new(module: Interval.IntegerInterval, left: 1, right: 2))
       2
   """
-  @compile {:inline, right: 1}
   @spec right(t()) :: point()
   def right(%{right: {_, value}}), do: value
   def right(%{right: _}), do: nil
@@ -1278,7 +1276,6 @@ defmodule Interval do
   end
 
   # completely unbounded:
-  @compile {:inline, unpack_bounds: 1}
   defp unpack_bounds(nil), do: unpack_bounds("[)")
   defp unpack_bounds(""), do: {:unbounded, :unbounded}
   # unbounded either left or right
@@ -1292,7 +1289,6 @@ defmodule Interval do
   defp unpack_bounds("[)"), do: {:inclusive, :exclusive}
   defp unpack_bounds("(]"), do: {:exclusive, :inclusive}
 
-  @compile {:inline, pack_bounds: 1}
   defp pack_bounds({:unbounded, :unbounded}), do: ""
   # unbounded either left or right
   defp pack_bounds({:unbounded, :exclusive}), do: ")"
@@ -1310,7 +1306,6 @@ defmodule Interval do
   end
 
   # Endpoint value extraction:
-  @compile {:inline, point: 1}
   defp point({_, point}), do: point
 
   # Left is bounded and has a point
