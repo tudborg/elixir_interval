@@ -37,6 +37,7 @@ defmodule Interval.MixProject do
       source_url: @source_url,
       # homepage_url: "https://github.com/tbug/interval_elixir",
       docs: [
+        skip_undefined_reference_warnings_on: ["CHANGELOG.md"],
         source_ref: "v#{@version}",
         main: "Interval",
         extras: [
