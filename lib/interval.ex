@@ -160,12 +160,22 @@ defmodule Interval do
   implementation.
   """
   @type t(point) :: %{
-          __struct__: atom(),
+          __struct__: module(),
           # Left endpoint
-          left: :empty | :unbounded | {bound(), point},
+          left: endpoint(point),
           # Right  endpoint
-          right: :empty | :unbounded | {bound(), point}
+          right: endpoint(point)
         }
+
+  @typedoc """
+  An endpoint of an interval.
+
+  Can be either
+  - `:empty` representing an empty interval (both endpoints will be empty)
+  - `:unbounded` representing an unbounded endpoint
+  - `{bound(), t}` representing a bounded endpoint
+  """
+  @type endpoint(t) :: :empty | :unbounded | {bound(), t}
 
   @typedoc """
   Shorthand for `t(any())`
@@ -1351,57 +1361,6 @@ defmodule Interval do
       end
   """
   defmacro __using__(opts) do
-    quote bind_quoted: [
-            type: Keyword.fetch!(opts, :type),
-            discrete: Keyword.get(opts, :discrete, false)
-          ] do
-      @moduledoc """
-      Represents a #{if discrete, do: "discrete", else: "continuous"}
-      interval containing `#{type}`
-      """
-
-      @behaviour Interval.Behaviour
-      @discrete discrete
-
-      @typedoc "An interval of point type `#{type}`"
-      @type t() :: %__MODULE__{}
-      @type point_type() :: unquote(type)
-
-      defstruct left: nil, right: nil
-
-      @spec new(left :: point_type(), right :: point_type(), bounds :: Interval.strbounds()) ::
-              t()
-      def new(left, right, bounds \\ "[)") do
-        new(left: left, right: right, bounds: bounds)
-      end
-
-      def new(opts \\ []) do
-        opts
-        |> Keyword.put(:module, __MODULE__)
-        |> Interval.new()
-      end
-
-      @spec discrete?() :: unquote(@discrete)
-      def discrete?(), do: @discrete
-
-      # delegate functionality to Interval
-      defdelegate empty?(interval), to: Interval
-      defdelegate left(interval), to: Interval
-      defdelegate right(interval), to: Interval
-      defdelegate unbounded_left?(interval), to: Interval
-      defdelegate unbounded_right?(interval), to: Interval
-      defdelegate inclusive_left?(interval), to: Interval
-      defdelegate inclusive_right?(interval), to: Interval
-      defdelegate strictly_left_of?(a, b), to: Interval
-      defdelegate strictly_right_of?(a, b), to: Interval
-      defdelegate adjacent_left_of?(a, b), to: Interval
-      defdelegate adjacent_right_of?(a, b), to: Interval
-      defdelegate overlaps?(a, b), to: Interval
-      defdelegate contains?(a, b), to: Interval
-      defdelegate contains_point?(a, x), to: Interval
-      defdelegate union(a, b), to: Interval
-      defdelegate intersection(a, b), to: Interval
-      defdelegate partition(a, x), to: Interval
-    end
+    Interval.Macro.define_interval(opts)
   end
 end
