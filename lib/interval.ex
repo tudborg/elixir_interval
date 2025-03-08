@@ -468,6 +468,54 @@ defmodule Interval do
   def inclusive_right?(%{}), do: false
 
   @doc """
+  Is the interval left-exclusive?
+
+  The interval is left-exclusive if the left endpoint value is excluded from the interval.
+
+  > #### Note {: .info}
+  > Discrete intervals (like `Interval.IntegerInterval` and `Interval.DateInterval`) are always normalized
+  > to be left-inclusive right-exclusive (`[)`).
+
+
+      iex> exclusive_left?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "[]"))
+      false
+
+      iex> exclusive_left?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "(]"))
+      true
+
+      iex> exclusive_left?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "()"))
+      true
+
+  """
+  @spec exclusive_left?(t()) :: boolean()
+  def exclusive_left?(%{left: {:exclusive, _}}), do: true
+  def exclusive_left?(%{}), do: false
+
+  @doc """
+  Is the interval right-exclusive?
+
+  The interval is right-exclusive if the right endpoint value is excluded from the interval.
+
+  > #### Note {: .info}
+  > Discrete intervals (like `Interval.IntegerInterval` and `Interval.DateInterval`) are always normalized
+  > to be left-inclusive right-exclusive (`[)`).
+
+
+      iex> exclusive_right?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "[]"))
+      false
+
+      iex> exclusive_right?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "[)"))
+      true
+
+      iex> exclusive_right?(new(module: Interval.FloatInterval, left: 1.0, right: 2.0, bounds: "()"))
+      true
+
+  """
+  @spec exclusive_right?(t()) :: boolean()
+  def exclusive_right?(%{right: {:exclusive, _}}), do: true
+  def exclusive_right?(%{}), do: false
+
+  @doc """
   Is `a` strictly left of `b`.
 
   `a` is strictly left of `b` if no point in `a` is in `b`,
@@ -791,34 +839,45 @@ defmodule Interval do
       true
   """
   @spec contains?(t(), t()) :: boolean()
+
   def contains?(%module{} = a, %module{} = b) do
-    # Neither A or B must be empty, so that's a prerequisite for
-    # even checking anything.
-    prerequisite = not (empty?(a) or empty?(b))
+    a_empty? = empty?(a)
+    b_empty? = empty?(b)
 
-    with true <- prerequisite do
-      # check that left(a) is less than or equal to (if inclusive) left(b):
-      contains_left =
-        unbounded_left?(a) or
-          (not unbounded_left?(b) and
-             case module.point_compare(left(a), left(b)) do
-               :gt -> false
-               :eq -> inclusive_left?(a) == inclusive_left?(b)
-               :lt -> true
-             end)
+    cond do
+      # if a == b then a by definition contains b
+      a == b ->
+        true
 
-      # check that right(a) is greater than or equal to (if inclusive) right(b):
-      contains_right =
-        unbounded_right?(a) or
-          (not unbounded_right?(b) and
-             case module.point_compare(right(a), right(b)) do
-               :gt -> true
-               :eq -> inclusive_right?(a) == inclusive_right?(b)
-               :lt -> false
-             end)
+      # all ranges contains the empty range
+      b_empty? ->
+        true
 
-      # a contains b if both the left check and right check passes:
-      contains_left and contains_right
+      # if a contains no points, and b contains some points, then a cannot contain b
+      a_empty? and not b_empty? ->
+        false
+
+      # otherwise, we'll have to check points
+      true ->
+        contains_left =
+          unbounded_left?(a) or
+            (not unbounded_left?(b) and
+               case module.point_compare(left(a), left(b)) do
+                 :gt -> false
+                 :eq -> inclusive_left?(a) or (exclusive_left?(a) and exclusive_left?(b))
+                 :lt -> true
+               end)
+
+        contains_right =
+          unbounded_right?(a) or
+            (not unbounded_right?(b) and
+               case module.point_compare(right(a), right(b)) do
+                 :gt -> true
+                 :eq -> inclusive_right?(a) or (exclusive_right?(a) and exclusive_right?(b))
+                 :lt -> false
+               end)
+
+        contains_left and contains_right
     end
   end
 

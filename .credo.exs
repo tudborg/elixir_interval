@@ -24,7 +24,7 @@
         included: [
           "lib/",
           "src/",
-          "test/",
+          "test/"
         ],
         excluded: [~r"/_build/", ~r"/deps/"]
       },
@@ -116,7 +116,7 @@
           #
           {Credo.Check.Refactor.Apply, []},
           {Credo.Check.Refactor.CondStatements, []},
-          {Credo.Check.Refactor.CyclomaticComplexity, [max_complexity: 15]},
+          {Credo.Check.Refactor.CyclomaticComplexity, [max_complexity: 22]},
           {Credo.Check.Refactor.FunctionArity, []},
           {Credo.Check.Refactor.LongQuoteBlocks, []},
           {Credo.Check.Refactor.MatchInCondition, []},

@@ -109,6 +109,24 @@ defmodule Interval.IntervalTest do
     refute Interval.inclusive_right?(empty)
   end
 
+  test "exclusive_left?/1" do
+    a = floati(1.0, 2.0, "[]")
+    b = floati(1.0, 2.0, "()")
+    empty = floati(1.0, 1.0, "()")
+    refute Interval.exclusive_left?(a)
+    assert Interval.exclusive_left?(b)
+    refute Interval.exclusive_left?(empty)
+  end
+
+  test "exclusive_right?/1" do
+    a = floati(1.0, 2.0, "[]")
+    b = floati(1.0, 2.0, "()")
+    empty = floati(1.0, 1.0, "()")
+    refute Interval.exclusive_right?(a)
+    assert Interval.exclusive_right?(b)
+    refute Interval.exclusive_right?(empty)
+  end
+
   test "strictly_left_of?/2" do
     a = inti(1, 3, "[]")
 
@@ -260,6 +278,25 @@ defmodule Interval.IntervalTest do
     refute Interval.contains_point?(inti(1, 1), 0)
     refute Interval.contains_point?(inti(1, 1), 1)
     refute Interval.contains_point?(inti(1, 1), 2)
+  end
+
+  test "contains?/2" do
+    refute Interval.contains?(floati(1.0, 4.0, "()"), floati(1.0, 4.0, "[]"))
+    assert Interval.contains?(floati(1.0, 4.0, "[]"), floati(1.0, 4.0, "()"))
+
+    assert Interval.contains?(inti(1, 2), inti(1, 2))
+    assert Interval.contains?(inti(nil, 2), inti(nil, 1))
+    assert Interval.contains?(inti(1, nil), inti(2, nil))
+
+    ## bound differs
+    # same as discrete above for sanity
+    assert Interval.contains?(floati(1.0, 2.0), floati(1.0, 2.0))
+    assert Interval.contains?(floati(nil, 2.0), floati(nil, 1.0))
+    assert Interval.contains?(floati(1.0, nil), floati(2.0, nil))
+    # bounds differs but should still contain
+    assert Interval.contains?(floati(1.0, 2.0, "[)"), floati(1.0, 2.0, "()"))
+    assert Interval.contains?(floati(1.0, 2.0, "(]"), floati(1.0, 2.0, "()"))
+    assert Interval.contains?(floati(1.0, 2.0, "[]"), floati(1.0, 2.0, "()"))
   end
 
   test "partition/2" do
