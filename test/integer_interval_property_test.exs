@@ -59,9 +59,11 @@ defmodule IntegerIntervalIntervalPropertyTest do
             b <- Helper.integer_interval()
           ) do
       cond do
-        Interval.empty?(a) or Interval.empty?(b) ->
+        Interval.empty?(a) and not Interval.empty?(b) ->
           refute Interval.contains?(a, b)
-          refute Interval.contains?(b, a)
+
+        Interval.empty?(b) ->
+          assert Interval.contains?(a, b)
 
         a == b ->
           assert Interval.contains?(a, b)
