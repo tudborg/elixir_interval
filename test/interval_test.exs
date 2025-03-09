@@ -278,6 +278,14 @@ defmodule Interval.IntervalTest do
     refute Interval.contains_point?(inti(1, 1), 0)
     refute Interval.contains_point?(inti(1, 1), 1)
     refute Interval.contains_point?(inti(1, 1), 2)
+
+    # continuous
+    assert Interval.contains_point?(floati(1.0, 2.0), 1.0)
+    refute Interval.contains_point?(floati(1.0, 2.0), 2.0)
+    assert Interval.contains_point?(floati(1.0, 2.0, "[]"), 2.0)
+    assert Interval.contains_point?(floati(1.0, nil), 2.0)
+    assert Interval.contains_point?(floati(nil, 3.0), 2.0)
+    assert Interval.contains_point?(floati(nil, nil), 2.0)
   end
 
   test "contains?/2" do
