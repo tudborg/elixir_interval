@@ -41,6 +41,14 @@ defmodule Interval.Macro do
       @spec discrete?() :: unquote(discrete)
       def discrete?(), do: @discrete
 
+      # default implementation for point_step/2
+      # continuous intervals do not support a step function, and will not need to implement this.
+      @spec point_step(point_type(), integer()) :: nil
+      def point_step(a, _n),
+        do: raise(Interval.IntervalOperationError, "point_step not implemented for #{__MODULE__}")
+
+      defoverridable point_step: 2
+
       # delegate functionality to Interval
       defdelegate empty?(interval), to: Interval
       defdelegate left(interval), to: Interval
@@ -59,6 +67,7 @@ defmodule Interval.Macro do
       defdelegate union(a, b), to: Interval
       defdelegate intersection(a, b), to: Interval
       defdelegate partition(a, x), to: Interval
+      defdelegate difference(a, b), to: Interval
     end
   end
 end

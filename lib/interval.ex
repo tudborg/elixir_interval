@@ -18,26 +18,22 @@ defmodule Interval do
 
   ## Features
 
-  The key features of this library are
+  Supports intervals of stdlib types like `DateTime`.
+  Also comes with support for `Decimal` out of the box.
 
-  - Common interval operations built in are
-    - `intersection/2`
-    - `union/2`
-    - `overlaps?/2`
-    - `contains?/2`
-    - `partition/2`
-    - adjacent?
-    - empty?
-    - unbounded?
-  - Built in support for intervals containing
-      - `Integer`
-      - `Float`
-      - `Date`
-      - `DateTime`
-      - `NaiveDateTime`
-      - `Decimal`
-  - Also implements
-    - `Ecto.Type`
+  Automatically generates an `Ecto.Type` for use with Postgres' range types
+  (see https://www.postgresql.org/docs/current/rangetypes.html)
+
+  You can very easily implement your own types into the interval
+  with the `Interval.__using__/1` macro.
+
+  Built in intervals:
+    - `Interval.IntegerInterval`
+    - `Interval.FloatInterval`
+    - `Interval.DateInterval`
+    - `Interval.DateTimeInterval`
+    - `Interval.NaiveDateTimeInterval`
+    - `Interval.DecimalInterval`
 
   ## Interval Notation
 
@@ -342,7 +338,7 @@ defmodule Interval do
         left_bound == :exclusive and right_bound == :exclusive ->
         :eq ==
           left_point
-          |> module.point_step(+1)
+          |> then(&point_step(module, &1, +1))
           |> module.point_compare(right_point)
 
       # If none of the above, then the interval is not empty
@@ -1287,7 +1283,7 @@ defmodule Interval do
 
   defp normalize_right_endpoint(module, {right_bound, right_point}) do
     case {module.discrete?(), right_bound} do
-      {true, :inclusive} -> {:exclusive, module.point_step(right_point, 1)}
+      {true, :inclusive} -> {:exclusive, point_step(module, right_point, +1)}
       {_, _} -> {right_bound, right_point}
     end
   end
@@ -1296,7 +1292,7 @@ defmodule Interval do
 
   defp normalize_left_endpoint(module, {left_bound, left_point}) do
     case {module.discrete?(), left_bound} do
-      {true, :exclusive} -> {:inclusive, module.point_step(left_point, 1)}
+      {true, :exclusive} -> {:inclusive, point_step(module, left_point, +1)}
       {_, _} -> {left_bound, left_point}
     end
   end
@@ -1331,6 +1327,18 @@ defmodule Interval do
   defp assert_bounds(a, bounds) do
     raise ArgumentError,
       message: "expected bounds #{pack_bounds(bounds)} for interval #{inspect(a)}"
+  end
+
+  defp point_step(_module, point, 0), do: point
+
+  defp point_step(module, point, step) do
+    case module.point_step(point, step) do
+      nil ->
+        raise IntervalOperationError, message: "#{module}.point_step/2 did not return a point"
+
+      stepped ->
+        stepped
+    end
   end
 
   ##

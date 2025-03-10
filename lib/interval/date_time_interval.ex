@@ -16,9 +16,5 @@ if Application.get_env(:interval, Interval.DateTimeInterval, true) do
     @impl true
     @spec point_compare(DateTime.t(), DateTime.t()) :: :lt | :eq | :gt
     defdelegate point_compare(a, b), to: DateTime, as: :compare
-
-    @impl true
-    @spec point_step(DateTime.t(), any()) :: nil
-    def point_step(%DateTime{}, _n), do: nil
   end
 end

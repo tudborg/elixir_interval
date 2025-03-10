@@ -17,8 +17,5 @@ if Application.get_env(:interval, Interval.FloatInterval, true) do
     def point_compare(a, a) when is_float(a), do: :eq
     def point_compare(a, b) when is_float(a) and is_float(b) and a > b, do: :gt
     def point_compare(a, b) when is_float(a) and is_float(b) and a < b, do: :lt
-
-    @spec point_step(float(), any()) :: nil
-    def point_step(a, _n) when is_float(a), do: nil
   end
 end

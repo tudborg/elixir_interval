@@ -40,7 +40,9 @@ defmodule Interval.BuiltinTest do
 
   describe "Float" do
     test "point_step/2" do
-      assert nil === FloatInterval.point_step(2.0, 2)
+      assert_raise Interval.IntervalOperationError, fn ->
+        FloatInterval.point_step(2.0, 2)
+      end
     end
 
     test "point_normalize/1" do
@@ -53,7 +55,9 @@ defmodule Interval.BuiltinTest do
 
   describe "DateTime" do
     test "point_step/2" do
-      assert nil === DateTimeInterval.point_step(~U[2022-01-01 00:00:00Z], 2)
+      assert_raise Interval.IntervalOperationError, fn ->
+        DateTimeInterval.point_step(~U[2022-01-01 00:00:00Z], 2)
+      end
     end
 
     test "point_normalize/1" do
@@ -102,7 +106,9 @@ defmodule Interval.BuiltinTest do
 
   describe "Decimal" do
     test "point_step/2" do
-      assert nil === DecimalInterval.point_step(Decimal.new(1), 2)
+      assert_raise Interval.IntervalOperationError, fn ->
+        DecimalInterval.point_step(Decimal.new(1), 2)
+      end
     end
 
     test "discrete?/1" do

@@ -18,9 +18,5 @@ if Application.get_env(:interval, Interval.DecimalInterval, true) and Code.ensur
     def point_compare(a, b) when is_struct(a, Decimal) and is_struct(b, Decimal) do
       Decimal.compare(a, b)
     end
-
-    @impl true
-    @spec point_step(Decimal.t(), any()) :: nil
-    def point_step(a, _n) when is_struct(a, Decimal), do: nil
   end
 end
