@@ -875,25 +875,7 @@ defmodule Interval do
   @doc since: "0.1.4"
   @spec contains_point?(t(), point()) :: boolean()
   def contains_point?(%module{} = a, x) do
-    with true <- not empty?(a) do
-      contains_left =
-        unbounded_left?(a) or
-          case module.point_compare(left(a), x) do
-            :gt -> false
-            :eq -> inclusive_left?(a)
-            :lt -> true
-          end
-
-      contains_right =
-        unbounded_right?(a) or
-          case module.point_compare(right(a), x) do
-            :gt -> true
-            :eq -> inclusive_right?(a)
-            :lt -> false
-          end
-
-      contains_left and contains_right
-    end
+    contains?(a, new(module: module, left: x, right: x, bounds: "[]"))
   end
 
   @doc """
