@@ -519,4 +519,94 @@ defmodule Interval.IntervalTest do
 
     assert a === b
   end
+
+  test "difference/2" do
+    empty = inti(1, 1, "()")
+    ##
+    # Discrete interval
+    ##
+    # a - a = empty
+    assert Interval.difference(inti(1, 4), inti(1, 4)) === empty
+    # a - empty = a
+    assert Interval.difference(inti(1, 4), empty) === inti(1, 4)
+    # empty - a = empty
+    assert Interval.difference(empty, inti(1, 4)) === empty
+    # a - b when b covers left side of a
+    assert Interval.difference(inti(1, 4), inti(0, 2)) === inti(2, 4)
+    # a - b when b covers right side of a
+    assert Interval.difference(inti(1, 4), inti(3, 5)) === inti(1, 3)
+    # a - b when b covers a = empty
+    assert Interval.difference(inti(1, 4), inti(0, 5)) === empty
+    # a - b when a covers b is Error
+    assert_raise Interval.IntervalOperationError, fn ->
+      Interval.difference(inti(1, 4), inti(2, 3))
+    end
+
+    # b's endpoint matches a's endpoint on one side exactly
+    assert Interval.difference(inti(1, 4), inti(3, 4)) === inti(1, 3)
+    assert Interval.difference(inti(1, 4), inti(1, 2)) === inti(2, 4)
+
+    # unbounded endpoints
+    # different mutations of unbounded b (where b covers a completely)
+    assert Interval.difference(inti(1, 4), inti(nil, nil)) === empty
+    assert Interval.difference(inti(1, 4), inti(0, nil)) === empty
+    assert Interval.difference(inti(1, 4), inti(nil, 5)) === empty
+    # b only partially covers a
+    assert Interval.difference(inti(1, 4), inti(2, nil)) === inti(1, 2)
+    assert Interval.difference(inti(1, 4), inti(nil, 3)) === inti(3, 4)
+    # a also unbounded and b is not
+    assert_raise Interval.IntervalOperationError, fn ->
+      Interval.difference(inti(nil, nil), inti(1, 4))
+    end
+
+    # a is unbounded and b is unbounded
+    assert Interval.difference(inti(1, nil), inti(2, nil)) === inti(1, 2)
+    assert Interval.difference(inti(nil, 4), inti(nil, 3)) === inti(3, 4)
+    assert Interval.difference(inti(nil, 4), inti(nil, nil)) === empty
+    assert Interval.difference(inti(1, nil), inti(nil, nil)) === empty
+    assert Interval.difference(inti(nil, nil), inti(nil, nil)) === empty
+    assert Interval.difference(inti(nil, nil), inti(nil, 3)) === inti(3, nil)
+    assert Interval.difference(inti(nil, nil), inti(3, nil)) === inti(nil, 3)
+
+    assert Interval.difference(inti(1, 2), inti(3, 4)) === inti(1, 2)
+    assert Interval.difference(inti(3, 4), inti(1, 2)) === inti(3, 4)
+
+    ##
+    # Continuous interval
+    ##
+    # (we don't need to cover the basics, because those are the asme as for discrete intervals
+    # but we want to make sure we've covered what happens at the endpoints with bounds)
+    # empty = floati(1.0, 1.0, "()")
+
+    assert Interval.difference(floati(3.0, 5.0), floati(3.0, 5.0)) === floati(:empty)
+
+    assert Interval.difference(floati(1.0, 4.0, "[]"), floati(3.0, 4.0, "[]")) ===
+             floati(1.0, 3.0, "[)")
+
+    assert Interval.difference(floati(1.0, 4.0, "[]"), floati(1.0, 2.0, "[]")) ===
+             floati(2.0, 4.0, "(]")
+
+    # a: [------)
+    # b:    [------)
+    a = floati(1.0, 4.0, "[)")
+    b = floati(3.0, 5.0, "[)")
+    assert Interval.difference(a, b) === floati(1.0, 3.0, "[)")
+
+    # a: [------]
+    # b:    (------]
+    a = floati(1.0, 4.0, "[]")
+    b = floati(3.0, 5.0, "(]")
+    assert Interval.difference(a, b) === floati(1.0, 3.0, "[]")
+
+    # a: [-----------]
+    # b:   (------)
+    a = floati(1.0, 5.0, "[]")
+    b = floati(3.0, 4.0, "()")
+
+    assert_raise Interval.IntervalOperationError, fn ->
+      Interval.difference(a, b)
+    end
+
+    assert Interval.difference(b, a) === floati(:empty)
+  end
 end

@@ -84,6 +84,29 @@ defmodule ContinuousIntervalPropertyTest do
     end
   end
 
+  property "difference/2", %{impl: impl} do
+    check all(
+            a <- Helper.interval(impl),
+            b <- Helper.interval(impl)
+          ) do
+      cond do
+        # if a does not overlap b, we always expect first argument back
+        not Interval.overlaps?(a, b) ->
+          assert Interval.difference(a, b) === a
+
+        # if a contains b, and a does not share an endpoint with b, difference/2 would raise
+        Interval.contains?(a, b) and not (a.left == b.left or a.right == b.right) ->
+          assert_raise Interval.IntervalOperationError, fn ->
+            Interval.difference(a, b)
+          end
+
+        # if a overlaps b, we are always going to to change a
+        Interval.overlaps?(a, b) ->
+          assert Interval.difference(a, b) !== a
+      end
+    end
+  end
+
   property "contains?/2", %{impl: impl} do
     check all(
             a <- Helper.interval(impl),

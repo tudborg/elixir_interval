@@ -33,4 +33,21 @@ defmodule Interval.RegressionTest do
              FloatInterval.new(left: 2.0, right: 3.0, bounds: "[]")
            ) === FloatInterval.new(left: 2.0, right: 3.0, bounds: "[)")
   end
+
+  test "difference/2 regression 2025-03-10" do
+    a = %Interval.DecimalInterval{
+      left: {:inclusive, Decimal.new("-1")},
+      right: :unbounded
+    }
+
+    b = %Interval.DecimalInterval{
+      left: {:inclusive, Decimal.new("1")},
+      right: :unbounded
+    }
+
+    assert Interval.difference(a, b) === %Interval.DecimalInterval{
+             left: {:inclusive, Decimal.new("-1")},
+             right: {:exclusive, Decimal.new("1")}
+           }
+  end
 end
