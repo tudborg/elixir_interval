@@ -8,6 +8,12 @@ defmodule ContinuousIntervalPropertyTest do
       %{impl: Interval.FloatInterval}
     ]
 
+  setup ctx do
+    # older versions of ExUnit do not support parameterize,
+    # so we fall back to a signle continuous module to test
+    Map.put_new(ctx, :impl, Interval.FloatInterval)
+  end
+
   property "overlaps?/2 is commutative", %{impl: impl} do
     check all(
             a <- Helper.interval(impl),

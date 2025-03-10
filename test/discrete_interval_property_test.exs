@@ -7,6 +7,12 @@ defmodule DiscreteIntervalPropertyTest do
       %{impl: Interval.IntegerInterval}
     ]
 
+  setup ctx do
+    # older versions of ExUnit do not support parameterize,
+    # so we fall back to a signle discrete module to test
+    Map.put_new(ctx, :impl, Interval.IntegerInterval)
+  end
+
   property "overlaps?/2 is commutative", %{impl: impl} do
     check all(
             a <- Helper.interval(impl),
