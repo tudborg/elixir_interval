@@ -65,6 +65,7 @@ defmodule Interval.MixProject do
 
   defp test_coverage() do
     [
+      ignore_modules: [Helper],
       summary: [threshold: 85]
     ]
   end
