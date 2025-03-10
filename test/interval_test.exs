@@ -8,37 +8,59 @@ defmodule Interval.IntervalTest do
   alias DateIntervalInterval
   alias DateTimeIntervalInterval
 
+  defp inti(:empty), do: inti(:empty, :empty)
   defp inti(p), do: inti(p, p, "[]")
   defp inti(l, r), do: inti(l, r, nil)
   defp inti(l, r, bounds), do: IntegerInterval.new(l, r, bounds)
 
-  # defp floati(p), do: floati(p, p, "[]")
+  defp floati(:empty), do: floati(:empty, :empty)
+  defp floati(p), do: floati(p, p, "[]")
   defp floati(l, r), do: floati(l, r, nil)
   defp floati(l, r, bounds), do: FloatInterval.new(l, r, bounds)
 
   test "new/1" do
     # some normal construction
-    assert inti(1, 2)
-    assert inti(1, 3, "()")
+    assert IntegerInterval.new(1, 1)
+    assert IntegerInterval.new(1, 3, "()")
+
+    assert IntegerInterval.new(empty: true)
+    assert IntegerInterval.new(left: :empty)
+    assert IntegerInterval.new(right: :empty)
 
     # unbounded specified by the bounds
-    assert ubr = inti(1, 1, "[")
-    assert ubl = inti(1, 1, "]")
+    assert ubr = IntegerInterval.new(1, 1, "[")
+    assert ubl = IntegerInterval.new(1, 1, "]")
     assert Interval.unbounded_left?(ubl)
     assert Interval.unbounded_right?(ubr)
-    assert inti(1, 1, "(")
-    assert inti(1, 1, ")")
-    assert inti(1, 1, "")
+    assert IntegerInterval.new(1, 1, "(")
+    assert IntegerInterval.new(1, 1, ")")
+    assert IntegerInterval.new(1, 1, "")
 
-    assert floati(1.0, 2.0)
-    assert floati(1.0, 3.0, "()")
+    assert FloatInterval.new(1.0, 2.0)
+    assert FloatInterval.new(1.0, 3.0, "()")
 
     # discrete type normalization
-    assert inti(1, 2) ===
-             inti(1, 1, "[]")
+    assert IntegerInterval.new(1, 2) ===
+             IntegerInterval.new(1, 1, "[]")
 
-    assert inti(1, 3, "()") ===
-             inti(2, 2, "[]")
+    assert IntegerInterval.new(1, 3, "()") ===
+             IntegerInterval.new(2, 2, "[]")
+
+    assert_raise ArgumentError, fn ->
+      IntegerInterval.new(1.0, 2.0, "[]")
+    end
+  end
+
+  test "value retrieval functions" do
+    a = inti(1, 2, "[)")
+
+    assert 1 == Interval.left(a)
+    assert 2 == Interval.right(a)
+
+    a = inti(nil, nil)
+
+    assert nil == Interval.left(a)
+    assert nil == Interval.right(a)
 
     # unbounded left and right and both
     assert inti(1, nil) |> Interval.unbounded_right?()
@@ -89,6 +111,9 @@ defmodule Interval.IntervalTest do
     }
 
     assert Interval.empty?(non_normalized_2)
+
+    assert Interval.empty?(%IntegerInterval{left: :empty, right: :unbounded})
+    assert Interval.empty?(%IntegerInterval{left: :unbounded, right: :empty})
   end
 
   test "inclusive_left?/1" do
@@ -130,12 +155,15 @@ defmodule Interval.IntervalTest do
   test "strictly_left_of?/2" do
     a = inti(1, 3, "[]")
 
+    refute Interval.strictly_left_of?(a, inti(nil, nil))
     refute Interval.strictly_left_of?(a, inti(0))
     refute Interval.strictly_left_of?(a, inti(1))
     refute Interval.strictly_left_of?(a, inti(2))
     refute Interval.strictly_left_of?(a, inti(3))
     assert Interval.strictly_left_of?(a, inti(4))
     assert Interval.strictly_left_of?(a, inti(4, 5))
+
+    refute Interval.strictly_left_of?(inti(nil, nil), inti(0))
   end
 
   test "strictly_right_of?/2" do
@@ -146,6 +174,9 @@ defmodule Interval.IntervalTest do
     refute Interval.strictly_right_of?(a, inti(2))
     refute Interval.strictly_right_of?(a, inti(3))
     refute Interval.strictly_right_of?(a, inti(4))
+    refute Interval.strictly_right_of?(a, inti(nil, nil))
+
+    refute Interval.strictly_right_of?(inti(nil, nil), inti(0))
   end
 
   test "adjacent_left_of?/2" do
@@ -176,6 +207,24 @@ defmodule Interval.IntervalTest do
     assert_raise ArgumentError, fn ->
       Interval.adjacent_right_of?(a, b)
     end
+  end
+
+  test "adjacent?/2" do
+    # integers
+    assert Interval.adjacent?(inti(1, 2), inti(2, 3))
+    assert Interval.adjacent?(inti(1, 2, "[]"), inti(3, 4, "[]"))
+    refute Interval.adjacent?(inti(1, 2), inti(4, 5))
+    refute Interval.adjacent?(inti(nil, nil), inti(1, 2))
+    refute Interval.adjacent?(inti(1, 2), inti(nil, nil))
+
+    # floats
+    assert Interval.adjacent?(floati(1.0, 2.0), floati(2.0, 3.0))
+    refute Interval.adjacent?(floati(1.0, 2.0), floati(3.0, 4.0))
+    refute Interval.adjacent?(floati(1.0, 2.0), floati(4.0, 5.0))
+
+    refute Interval.adjacent?(floati(1.0, 2.0, "[]"), floati(2.0, 3.0, "[]"))
+    assert Interval.adjacent?(floati(1.0, 2.0, "[)"), floati(2.0, 3.0, "[]"))
+    assert Interval.adjacent?(floati(1.0, 2.0, "[]"), floati(2.0, 3.0, "(]"))
   end
 
   test "overlaps?/2" do
@@ -225,6 +274,14 @@ defmodule Interval.IntervalTest do
     refute Interval.overlaps?(floati(1.0, 1.0, "()"), floati(2.0, 2.0, "()"))
   end
 
+  test "union/2" do
+    assert Interval.union(inti(1, 3, "[]"), inti(2, 4, "[]")) === inti(1, 4, "[]")
+    assert Interval.union(inti(2, 4, "[]"), inti(1, 3, "[]")) === inti(1, 4, "[]")
+
+    assert Interval.union(inti(:empty), inti(0, 3, "()")) === inti(0, 3, "()")
+    assert Interval.union(inti(0, 3, "()"), inti(:empty)) === inti(0, 3, "()")
+  end
+
   test "intersection/2" do
     # intersection with empty is always empty (and we use the "empty" that was empty)
     assert Interval.intersection(inti(1, 10, "[]"), inti(3, 3, "()")) === inti(3, 3, "()")
@@ -251,6 +308,13 @@ defmodule Interval.IntervalTest do
 
     assert Interval.intersection(floati(2.0, 3.0, "()"), floati(2.0, 3.0, "(]")) ===
              floati(2.0, 3.0, "()")
+
+    # one is empty
+    assert Interval.intersection(inti(1, 3, "[)"), inti(:empty)) === inti(:empty)
+    assert Interval.intersection(inti(:empty), inti(1, 3, "[)")) === inti(:empty)
+
+    # disjoint
+    assert Interval.intersection(inti(1, 3, "[)"), inti(4, 5, "[)")) === inti(:empty)
   end
 
   test "intersection/2 with unbounded intervals" do
@@ -338,6 +402,44 @@ defmodule Interval.IntervalTest do
     assert Interval.compare_bounds(:right, a, :right, b) === :gt
     assert Interval.compare_bounds(:left, a, :left, b) === :gt
     assert Interval.compare_bounds(:left, a, :right, b) === :eq
+
+    a = floati(0.0, 1.0, "()")
+    b = floati(1.0, 2.0, "()")
+    assert Interval.compare_bounds(:right, a, :left, b) === :lt
+    assert Interval.compare_bounds(:right, a, :right, b) === :lt
+    assert Interval.compare_bounds(:left, a, :left, b) === :lt
+    assert Interval.compare_bounds(:left, a, :right, b) === :lt
+
+    a = floati(1.0, 2.0, "()")
+    b = floati(0.0, 1.0, "()")
+    assert Interval.compare_bounds(:right, a, :left, b) === :gt
+    assert Interval.compare_bounds(:right, a, :right, b) === :gt
+    assert Interval.compare_bounds(:left, a, :left, b) === :gt
+    assert Interval.compare_bounds(:left, a, :right, b) === :gt
+  end
+
+  test "compare_bounds/4 - unboundeded and empty endpoints" do
+    assert_raise Interval.IntervalOperationError, fn ->
+      Interval.compare_bounds(:left, floati(:empty), :left, floati(0.0, 1.0, "[]"))
+    end
+
+    assert_raise Interval.IntervalOperationError, fn ->
+      Interval.compare_bounds(:left, floati(0.0, 1.0, "[]"), :left, floati(:empty))
+    end
+
+    a = floati(nil, 1.0)
+    b = floati(nil, 2.0)
+    assert Interval.compare_bounds(:left, a, :left, b) === :eq
+    assert Interval.compare_bounds(:left, a, :right, b) === :lt
+    assert Interval.compare_bounds(:right, a, :right, b) === :lt
+    assert Interval.compare_bounds(:right, a, :left, b) === :gt
+
+    a = floati(nil, nil)
+    b = floati(nil, nil)
+    assert Interval.compare_bounds(:left, a, :left, b) === :eq
+    assert Interval.compare_bounds(:left, a, :right, b) === :lt
+    assert Interval.compare_bounds(:right, a, :right, b) === :eq
+    assert Interval.compare_bounds(:right, a, :left, b) === :gt
   end
 
   test "contains_point?/2" do
@@ -393,6 +495,18 @@ defmodule Interval.IntervalTest do
     assert Interval.partition(inti(1, 4), 3) === [inti(1, 3), inti(3), inti(0, 0)]
     assert Interval.partition(inti(1, 4), 0) === []
     assert Interval.partition(inti(1, 4), 4) === []
+
+    assert Interval.partition(floati(1.0, 3.0, "[)"), 2.0) === [
+             floati(1.0, 2.0, "[)"),
+             floati(2.0, 2.0, "[]"),
+             floati(2.0, 3.0, "()")
+           ]
+
+    assert Interval.partition(floati(nil, nil, "[]"), 2.0) === [
+             floati(nil, 2.0, "[)"),
+             floati(2.0, 2.0, "[]"),
+             floati(2.0, nil, "()")
+           ]
   end
 
   test "partition/2's result unioned together is it's input interval" do

@@ -308,12 +308,13 @@ defmodule Interval do
   """
   @spec empty?(t()) :: boolean()
   def empty?(a)
-  def empty?(%{left: :unbounded}), do: false
-  def empty?(%{right: :unbounded}), do: false
 
   # if either side is empty, the interval is empty (normalized form will ensure both are set empty)
   def empty?(%{left: :empty}), do: true
   def empty?(%{right: :empty}), do: true
+
+  def empty?(%{left: :unbounded}), do: false
+  def empty?(%{right: :unbounded}), do: false
 
   # If the interval is not properly normalized, we have to check for all possible combinations.
   # an interval is empty if it spans a single point but the point is excluded (from either side)
@@ -1168,17 +1169,12 @@ defmodule Interval do
   defp point(:unbounded), do: nil
   defp point({_, point}), do: point
 
-  defp normalize_point!(_module, :empty), do: :empty
-  defp normalize_point!(_module, nil), do: nil
-
   defp normalize_point!(module, point) do
     case module.point_normalize(point) do
       {:ok, point} -> point
       :error -> raise ArgumentError, message: "Invalid point #{inspect(point)} for #{module}"
     end
   end
-
-  defp normalize(%{left: :empty, right: :empty} = interval), do: interval
 
   defp normalize(%module{} = interval) do
     case module.discrete?() do
