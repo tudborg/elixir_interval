@@ -1,38 +1,65 @@
-defmodule Interval.FloatIntervalPropertyTest do
-  use ExUnit.Case, async: true
+defmodule ContinuousIntervalPropertyTest do
   use ExUnitProperties
 
-  property "overlaps?/2 is commutative" do
+  use ExUnit.Case,
+    async: true,
+    parameterize: [
+      %{impl: Interval.DecimalInterval},
+      %{impl: Interval.FloatInterval}
+    ]
+
+  property "overlaps?/2 is commutative", %{impl: impl} do
     check all(
-            a <- Helper.float_interval(),
-            b <- Helper.float_interval()
+            a <- Helper.interval(impl),
+            b <- Helper.interval(impl)
           ) do
       assert Interval.overlaps?(a, b) === Interval.overlaps?(b, a)
     end
   end
 
-  property "union/2 is commutative" do
+  property "union/2 is commutative", %{impl: impl} do
     check all(
-            a <- Helper.float_interval(),
-            b <- Helper.float_interval()
+            a <- Helper.interval(impl),
+            b <- Helper.interval(impl)
           ) do
-      assert Interval.union(a, b) === Interval.union(b, a)
+      cond do
+        Interval.overlaps?(a, b) ->
+          assert Interval.union(a, b) === Interval.union(b, a)
+
+        Interval.adjacent?(a, b) ->
+          assert Interval.union(a, b) === Interval.union(b, a)
+
+        Interval.empty?(a) and not Interval.empty?(b) ->
+          assert Interval.union(a, b) === b
+
+        Interval.empty?(b) and not Interval.empty?(a) ->
+          assert Interval.union(a, b) === a
+
+        Interval.empty?(a) and Interval.empty?(b) ->
+          assert Interval.empty?(Interval.union(a, b))
+          assert Interval.empty?(Interval.union(b, a))
+
+        not Interval.empty?(b) and not Interval.empty?(a) ->
+          assert_raise Interval.IntervalOperationError, fn ->
+            Interval.union(a, b)
+          end
+      end
     end
   end
 
-  property "intersection/2 is commutative" do
+  property "intersection/2 is commutative", %{impl: impl} do
     check all(
-            a <- Helper.float_interval(),
-            b <- Helper.float_interval()
+            a <- Helper.interval(impl),
+            b <- Helper.interval(impl)
           ) do
       assert Interval.intersection(a, b) === Interval.intersection(b, a)
     end
   end
 
-  property "intersection/2's relationship with contains?/2" do
+  property "intersection/2's relationship with contains?/2", %{impl: impl} do
     check all(
-            a <- Helper.float_interval(),
-            b <- Helper.float_interval()
+            a <- Helper.interval(impl),
+            b <- Helper.interval(impl)
           ) do
       intersection = Interval.intersection(a, b)
 
@@ -51,10 +78,10 @@ defmodule Interval.FloatIntervalPropertyTest do
     end
   end
 
-  property "contains?/2" do
+  property "contains?/2", %{impl: impl} do
     check all(
-            a <- Helper.float_interval(),
-            b <- Helper.float_interval()
+            a <- Helper.interval(impl),
+            b <- Helper.interval(impl)
           ) do
       cond do
         Interval.empty?(a) and not Interval.empty?(b) ->
@@ -80,10 +107,10 @@ defmodule Interval.FloatIntervalPropertyTest do
     end
   end
 
-  property "strictly_left_of?/2 and strictly_right_of?/2 relationship" do
+  property "strictly_left_of?/2 and strictly_right_of?/2 relationship", %{impl: impl} do
     check all(
-            a <- Helper.float_interval(empty: false),
-            b <- Helper.float_interval(empty: false)
+            a <- Helper.interval(impl, empty: false),
+            b <- Helper.interval(impl, empty: false)
           ) do
       if Interval.overlaps?(a, b) do
         refute Interval.strictly_left_of?(a, b)
@@ -102,10 +129,10 @@ defmodule Interval.FloatIntervalPropertyTest do
     end
   end
 
-  property "adjacent_left_of?/2 and adjacent_right_of?/2 relationship" do
+  property "adjacent_left_of?/2 and adjacent_right_of?/2 relationship", %{impl: impl} do
     check all(
-            a <- Helper.float_interval(empty: false),
-            b <- Helper.float_interval(empty: false)
+            a <- Helper.interval(impl, empty: false),
+            b <- Helper.interval(impl, empty: false)
           ) do
       if Interval.overlaps?(a, b) do
         refute Interval.adjacent_left_of?(a, b)
