@@ -1043,6 +1043,90 @@ defmodule Interval do
   end
 
   @doc """
+  Computes the difference between `a` and `b` by subtracting all points in `b` from `a`.
+
+  `b` must not be contained in `a` in such a way that the difference would not be a single interval.
+
+  ## Examples:
+
+  Discrete:
+
+      # a: [-----)
+      # b:     [-----)
+      # c: [---)
+      iex> difference(Interval.IntegerInterval.new(1, 4), Interval.IntegerInterval.new(3, 5))
+      Interval.IntegerInterval.new(1, 3)
+
+      # a:     [-----)
+      # b: [-----)
+      # c:       [---)
+      iex> difference(Interval.IntegerInterval.new(3, 5), Interval.IntegerInterval.new(1, 4))
+      Interval.IntegerInterval.new(4, 5)
+
+  Continuous:
+
+      # a: [------)
+      # b:     [-----)
+      # c: [---)
+      iex> difference(Interval.FloatInterval.new(1.0, 4.0), Interval.FloatInterval.new(3.0, 5.0))
+      Interval.FloatInterval.new(1.0, 3.0)
+
+      # a: [-----)
+      # b:     (-----)
+      # c: [---]
+      iex> difference(Interval.FloatInterval.new(1.0, 4.0), Interval.FloatInterval.new(3.0, 5.0, "()"))
+      Interval.FloatInterval.new(1.0, 3.0, "[]")
+  """
+  @doc since: "2.0.0"
+  def difference(a, b)
+
+  def difference(%{} = a, %{} = a) do
+    new_empty(a.__struct__)
+  end
+
+  def difference(%module{} = a, %module{} = b) do
+    if empty?(a) or empty?(b) do
+      # if a or b are empty, then the a - b = a
+      a
+    else
+      cmp_al_bl = compare_bounds(module, :left, a.left, :left, b.left)
+      cmp_al_br = compare_bounds(module, :left, a.left, :right, b.right)
+      cmp_ar_bl = compare_bounds(module, :right, a.right, :left, b.left)
+      cmp_ar_br = compare_bounds(module, :right, a.right, :right, b.right)
+
+      cond do
+        # if a.left < b.left and a.right > b.right then a contains b which would result in multiple intervals
+        cmp_al_bl === :lt and cmp_ar_br === :gt ->
+          raise IntervalOperationError,
+            message: "subtracting B from A would result in multiple intervals"
+
+        # if a.left > b.right or a.right < b.left then a does not overlap b, so a - b = a
+        cmp_al_br === :gt or cmp_ar_bl === :lt ->
+          a
+
+        # if a.left >= b.left and a.right <= b.right then b covers a, so: a - b = empty
+        cmp_al_bl in [:gt, :eq] and cmp_ar_br in [:lt, :eq] ->
+          new_empty(module)
+
+        # a: [------)
+        # b:    [------)
+        # if a.left <= b.left and a.right >= b.left and a.right <= b.right
+        cmp_al_bl in [:lt, :eq] and cmp_ar_bl in [:gt, :eq] and cmp_ar_br in [:lt, :eq] ->
+          from_endpoints(module, a.left, inverted_bound(b.left))
+
+        # a:    [------)
+        # b: [------)
+        # if a.left >= b.left and a.right >= b.right and a.left <= b.right
+        cmp_al_bl in [:gt, :eq] and cmp_ar_br in [:gt, :eq] and cmp_al_br in [:lt, :eq] ->
+          from_endpoints(module, inverted_bound(b.right), a.right)
+      end
+    end
+  end
+
+  defp inverted_bound({:inclusive, point}), do: {:exclusive, point}
+  defp inverted_bound({:exclusive, point}), do: {:inclusive, point}
+
+  @doc """
   Partition an interval `a` into 3 intervals using  `x`:
 
   - The interval with all points from `a` < `x`
