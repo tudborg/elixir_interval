@@ -704,6 +704,18 @@ defmodule Interval do
   end
 
   @doc """
+  Check if two intervals are adjacent.
+
+  Two intervals are adjacent if they do not overlap, and there are no points between them.
+
+  This function is a shorthand for `adjacent_left_of(a, b) or adjacent_right_of?(a, b)`.
+  """
+  @doc since: "2.0.0"
+  def adjacent?(a, b) do
+    adjacent_left_of?(a, b) or adjacent_right_of?(a, b)
+  end
+
+  @doc """
   Does `a` overlap with `b`?
 
   `a` overlaps with `b` if any point in `a` is also in `b`.
@@ -900,7 +912,7 @@ defmodule Interval do
       new(module: Interval.IntegerInterval, left: 1, right: 3)
 
       iex> union(new(module: Interval.IntegerInterval, left: 1, right: 2), new(module: Interval.IntegerInterval, left: 3, right: 4))
-      new(module: Interval.IntegerInterval, left: 0, right: 0)
+      ** (Interval.IntervalOperationError) cannot union non-overlapping non-adjacent intervals as the result would be non-contiguous
   """
   @spec union(t(), t()) :: t()
   def union(%module{} = a, %module{} = b) do
@@ -914,20 +926,26 @@ defmodule Interval do
 
       # if a and b overlap or are adjacent, we can union the intervals
       overlaps?(a, b) or adjacent_left_of?(a, b) or adjacent_right_of?(a, b) ->
-        left = pick_union_left(module, a.left, b.left)
-        right = pick_union_right(module, a.right, b.right)
+        left =
+          case compare_bounds(module, :left, a.left, :left, b.left) do
+            :lt -> a.left
+            _ -> b.left
+          end
+
+        right =
+          case compare_bounds(module, :right, a.right, :right, b.right) do
+            :gt -> a.right
+            _ -> b.right
+          end
 
         from_endpoints(module, left, right)
 
-      # fall-through, if neither A or B is empty,
-      # but there is also no overlap or adjacency,
-      # then the two intervals are either strictly left or strictly right,
-      # we return empty (A and B share an empty amount of points)
+      # no overlap, not adjacent, not empty.
+      # We cannot union these intervals as the result would not be contiguous.
       true ->
-        # This assertion _must_ be true, since overlap?/2 returned false
-        # so there is no point in running it.
-        # true == strictly_left_of?(a, b) or strictly_right_of?(a, b)
-        new_empty(module)
+        raise IntervalOperationError,
+          message:
+            "cannot union non-overlapping non-adjacent intervals as the result would be non-contiguous"
     end
   end
 
@@ -1047,7 +1065,15 @@ defmodule Interval do
     end
   end
 
-  @doc false
+  @doc """
+  Compare the left/right side of `a` with the left/right side of `b`
+
+  Returns `:lt | :gt | :eq` depending on `a`s relationship to `b`.
+
+  Other interval operations use this function as primitive.
+  """
+  @doc since: "2.0.0"
+  @spec compare_bounds(:left | :right, t(), :left | :right, t()) :: :lt | :eq | :gt
   def compare_bounds(a_side, %module{} = a, b_side, %module{} = b) do
     compare_bounds(module, a_side, Map.fetch!(a, a_side), b_side, Map.fetch!(b, b_side))
   end
