@@ -551,11 +551,7 @@ defmodule Interval do
       not unbounded_left?(b) and
       not empty?(a) and
       not empty?(b) and
-      case module.point_compare(right(a), left(b)) do
-        :lt -> true
-        :eq -> not inclusive_right?(a) or not inclusive_left?(b)
-        :gt -> false
-      end
+      compare_bounds(:right, a, :left, b) == :lt
   end
 
   @doc """
@@ -593,11 +589,7 @@ defmodule Interval do
       not unbounded_right?(b) and
       not empty?(a) and
       not empty?(b) and
-      case module.point_compare(left(a), right(b)) do
-        :lt -> false
-        :eq -> not inclusive_left?(a) or not inclusive_right?(b)
-        :gt -> true
-      end
+      compare_bounds(:left, a, :right, b) == :gt
   end
 
   @doc """
