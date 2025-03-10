@@ -208,18 +208,18 @@ defmodule Interval do
 
   ## Options
 
+
+  - `left` The left (or lower) endpoint value of the interval (default: `:unbounded`)
+  - `right` The right (or upper) endpoint value of the interval (default: `:unbounded`)
+  - `bounds` The bound mode to use (default: `"[)"`)
+  - `empty` If set to `true`, the interval will be empty (default: `false`)
   - `module` The interval implementation to use.
-     When calling `new/1` from a `Interval.Behaviour` this is inferred.
-  - `left` The left (or lower) endpoint of the interval
-  - `right` The right (or upper) endpoint of the interval
-  - `bounds` The bound mode to use. Defaults to `"[)"`
+     When calling `new/1` from an `Interval.Behaviour` this is inferred.
 
-  A `nil` (`left` or `right`) endpoint is considered unbounded.
-  The endpoint will also be considered unbounded if the `bounds` is explicitly
-  set as unbounded.
+  Specifying `left` or `right` as `nil` will be interpreted as `:unbounded`.
+  The endpoint will also be considered unbounded if the `bounds` explicitly sets it as unbounded.
 
-  A special value `:empty` can be given to `left` and `right` to
-  construct an empty interval.
+  Specifying `left` or `right` as `:empty` will create an empty interval.
 
   ## Bounds
 
@@ -241,7 +241,7 @@ defmodule Interval do
 
       iex> new(module: Interval.IntegerInterval)
 
-      iex> new(module: Interval.IntegerInterval, left: :empty, right: :empty)
+      iex> new(module: Interval.IntegerInterval, empty: true)
 
       iex> new(module: Interval.IntegerInterval, left: 1)
 
@@ -252,20 +252,28 @@ defmodule Interval do
   @spec new(Keyword.t()) :: t()
   def new(opts) when is_list(opts) do
     module = Keyword.fetch!(opts, :module)
-    left = Keyword.get(opts, :left, nil)
-    right = Keyword.get(opts, :right, nil)
-    bounds = Keyword.get(opts, :bounds, nil)
-    {left_bound, right_bound} = unpack_bounds(bounds)
+    empty = Keyword.get(opts, :empty, false)
+    left = with nil <- Keyword.get(opts, :left), do: :unbounded
+    right = with nil <- Keyword.get(opts, :right), do: :unbounded
+    bounds = with nil <- Keyword.get(opts, :bounds), do: "[)"
 
-    left_endpoint = normalize_endpoint(module, left, left_bound)
-    right_endpoint = normalize_endpoint(module, right, right_bound)
-    normalize(struct!(module, left: left_endpoint, right: right_endpoint))
+    if empty == true or left == :empty or right == :empty do
+      # if we need to create an empty struct, we can short-circuit to an empty:
+      struct!(module, left: :empty, right: :empty)
+    else
+      # otherwise we need to do bounds checking and normalization:
+      {left_bound, right_bound} = unpack_bounds(bounds)
+      left_endpoint = normalize_endpoint(module, left, left_bound)
+      right_endpoint = normalize_endpoint(module, right, right_bound)
+      normalize(struct!(module, left: left_endpoint, right: right_endpoint))
+    end
   end
 
   defp normalize_endpoint(module, point, bound) do
     case {point, bound} do
-      {:empty, _} -> :empty
-      {nil, _} -> :unbounded
+      # point value takes precedence over bound:
+      {:unbounded, _} -> :unbounded
+      # if the point is set, the bound value discribes bound-ness:
       {_, :unbounded} -> :unbounded
       {_, :inclusive} -> {:inclusive, normalize_point!(module, point)}
       {_, :exclusive} -> {:exclusive, normalize_point!(module, point)}
@@ -634,14 +642,11 @@ defmodule Interval do
         not empty?(b)
 
     with true <- prerequisite do
-      # Assuming we've normalized both a and b,
-      # if the point types are discrete, and and normalized to `[)`
-      # then continuous and discrete intervals are checked in the same way.
-      # To ensure we don't give the wrong answer though,
-      # we have an assertion that that a discrete point type must be
-      # bounded as `[)`:
-      assert_normalized_bounds(a)
-      assert_normalized_bounds(b)
+      if module.discrete?() do
+        # for discrete types, to detect adjacency, we need to ensure normalized bounds.
+        assert_bounds(a, "[)")
+        assert_bounds(b, "[)")
+      end
 
       inclusive_right?(a) != inclusive_left?(b) and
         module.point_compare(right(a), left(b)) == :eq
@@ -689,14 +694,11 @@ defmodule Interval do
         not empty?(b)
 
     with true <- prerequisite do
-      # Assuming we've normalized both a and b,
-      # if the point types are discrete, and and normalized to `[)`
-      # then continuous and discrete intervals are checked in the same way.
-      # To ensure we don't give the wrong answer though,
-      # we have an assertion that that a discrete point type must be
-      # bounded as `[)`:
-      assert_normalized_bounds(a)
-      assert_normalized_bounds(b)
+      if module.discrete?() do
+        # for discrete types, to detect adjacency, we need to ensure normalized bounds.
+        assert_bounds(a, "[)")
+        assert_bounds(b, "[)")
+      end
 
       module.point_compare(left(a), right(b)) == :eq and
         inclusive_left?(a) != inclusive_right?(b)
@@ -1020,10 +1022,21 @@ defmodule Interval do
 
       # otherwise, we can compute the intersection
       true ->
-        # The intersection between `a` and `b` is the points that exist in
-        # both `a` and `b`.
-        left = pick_intersection_left(module, a.left, b.left)
-        right = pick_intersection_right(module, a.right, b.right)
+        # The intersection between `a` and `b` is the points that exist in both `a` and `b`.
+        # Since we know they overlap, we can just pick the left-most right bound and the right-most left bound.
+
+        left =
+          case compare_bounds(module, :left, a.left, :left, b.left) do
+            :lt -> b.left
+            _ -> a.left
+          end
+
+        right =
+          case compare_bounds(module, :right, a.right, :right, b.right) do
+            :gt -> b.right
+            _ -> a.right
+          end
+
         from_endpoints(module, left, right)
     end
   end
@@ -1136,39 +1149,24 @@ defmodule Interval do
   end
 
   defp from_endpoints(module, left, right) do
-    left_bound =
-      case left do
-        :unbounded -> :unbounded
-        {:exclusive, _} -> :exclusive
-        {:inclusive, _} -> :inclusive
-      end
-
-    right_bound =
-      case right do
-        :unbounded -> :unbounded
-        {:exclusive, _} -> :exclusive
-        {:inclusive, _} -> :inclusive
-      end
-
-    left_point =
-      case left do
-        :unbounded -> nil
-        {_, point} -> point
-      end
-
-    right_point =
-      case right do
-        :unbounded -> nil
-        {_, point} -> point
-      end
-
     new(
       module: module,
-      left: left_point,
-      right: right_point,
-      bounds: pack_bounds({left_bound, right_bound})
+      left: point(left),
+      right: point(right),
+      bounds: pack_bounds({bound(left), bound(right)})
     )
   end
+
+  defp new_empty(module) do
+    module.new(empty: true)
+  end
+
+  defp bound(:unbounded), do: :unbounded
+  defp bound({:exclusive, _}), do: :exclusive
+  defp bound({:inclusive, _}), do: :inclusive
+
+  defp point(:unbounded), do: nil
+  defp point({_, point}), do: point
 
   defp normalize_point!(_module, :empty), do: :empty
   defp normalize_point!(_module, nil), do: nil
@@ -1223,125 +1221,36 @@ defmodule Interval do
     end
   end
 
-  # Pick the exclusive endpoint if it exists
-  defp pick_exclusive({:exclusive, _} = a, _), do: a
-  defp pick_exclusive(_, {:exclusive, _} = b), do: b
-  defp pick_exclusive(a, b) when a < b, do: b
-  defp pick_exclusive(a, _b), do: a
+  @bounds %{
+    "" => {:unbounded, :unbounded},
+    ")" => {:unbounded, :exclusive},
+    "(" => {:exclusive, :unbounded},
+    "]" => {:unbounded, :inclusive},
+    "[" => {:inclusive, :unbounded},
+    "()" => {:exclusive, :exclusive},
+    "[]" => {:inclusive, :inclusive},
+    "[)" => {:inclusive, :exclusive},
+    "(]" => {:exclusive, :inclusive}
+  }
 
-  # Pick the inclusive endpoint if it exists
-  defp pick_inclusive({:inclusive, _} = a, _), do: a
-  defp pick_inclusive(_, {:inclusive, _} = b), do: b
-  defp pick_inclusive(a, b) when a < b, do: b
-  defp pick_inclusive(a, _b), do: a
-
-  # Pick the left point of a union from two left points
-  defp pick_union_left(_, :unbounded, _), do: :unbounded
-  defp pick_union_left(_, _, :unbounded), do: :unbounded
-
-  defp pick_union_left(module, a, b) do
-    case module.point_compare(point(a), point(b)) do
-      :gt -> b
-      :lt -> a
-      :eq -> pick_inclusive(a, b)
-    end
+  for {str, tuple} <- @bounds do
+    defp unpack_bounds(unquote(str)), do: unquote(tuple)
+    defp pack_bounds(unquote(tuple)), do: unquote(str)
   end
 
-  # Pick the right point of a union from two right points
-  defp pick_union_right(_, :unbounded, _), do: :unbounded
-  defp pick_union_right(_, _, :unbounded), do: :unbounded
-
-  defp pick_union_right(module, a, b) do
-    case module.point_compare(point(a), point(b)) do
-      :gt -> a
-      :lt -> b
-      :eq -> pick_inclusive(a, b)
-    end
+  defp assert_bounds(%{} = a, bounds) when is_binary(bounds) do
+    assert_bounds(a, unpack_bounds(bounds))
   end
 
-  # Pick the left point of a intersection from two left points
-  defp pick_intersection_left(_, :unbounded, :unbounded), do: :unbounded
-  defp pick_intersection_left(_, a, :unbounded), do: a
-  defp pick_intersection_left(_, :unbounded, b), do: b
+  defp assert_bounds(%{left: :empty, right: :empty}, {_left, _right}), do: :ok
+  defp assert_bounds(%{left: {left, _}, right: {right, _}}, {left, right}), do: :ok
+  defp assert_bounds(%{left: {left, _}, right: :unbounded}, {left, _right}), do: :ok
+  defp assert_bounds(%{left: :unbounded, right: {right, _}}, {_left, right}), do: :ok
+  defp assert_bounds(%{left: :unbounded, right: :unbounded}, {_left, _right}), do: :ok
 
-  defp pick_intersection_left(module, a, b) do
-    case module.point_compare(point(a), point(b)) do
-      :gt -> a
-      :lt -> b
-      :eq -> pick_exclusive(a, b)
-    end
-  end
-
-  # Pick the right point of a intersection from two right points
-  defp pick_intersection_right(_, :unbounded, :unbounded), do: :unbounded
-  defp pick_intersection_right(_, a, :unbounded), do: a
-  defp pick_intersection_right(_, :unbounded, b), do: b
-
-  defp pick_intersection_right(module, a, b) do
-    case module.point_compare(point(a), point(b)) do
-      :gt -> b
-      :lt -> a
-      :eq -> pick_exclusive(a, b)
-    end
-  end
-
-  # completely unbounded:
-  defp unpack_bounds(nil), do: unpack_bounds("[)")
-  defp unpack_bounds(""), do: {:unbounded, :unbounded}
-  # unbounded either left or right
-  defp unpack_bounds(")"), do: {:unbounded, :exclusive}
-  defp unpack_bounds("("), do: {:exclusive, :unbounded}
-  defp unpack_bounds("]"), do: {:unbounded, :inclusive}
-  defp unpack_bounds("["), do: {:inclusive, :unbounded}
-  # bounded both sides
-  defp unpack_bounds("()"), do: {:exclusive, :exclusive}
-  defp unpack_bounds("[]"), do: {:inclusive, :inclusive}
-  defp unpack_bounds("[)"), do: {:inclusive, :exclusive}
-  defp unpack_bounds("(]"), do: {:exclusive, :inclusive}
-
-  defp pack_bounds({:unbounded, :unbounded}), do: ""
-  # unbounded either left or right
-  defp pack_bounds({:unbounded, :exclusive}), do: ")"
-  defp pack_bounds({:exclusive, :unbounded}), do: "("
-  defp pack_bounds({:unbounded, :inclusive}), do: "]"
-  defp pack_bounds({:inclusive, :unbounded}), do: "["
-  # bounded both sides
-  defp pack_bounds({:exclusive, :exclusive}), do: "()"
-  defp pack_bounds({:inclusive, :inclusive}), do: "[]"
-  defp pack_bounds({:inclusive, :exclusive}), do: "[)"
-  defp pack_bounds({:exclusive, :inclusive}), do: "(]"
-
-  defp new_empty(module) do
-    module.new(left: :empty, right: :empty)
-  end
-
-  # Endpoint value extraction:
-  defp point({_, point}), do: point
-
-  # Left is bounded and has a point
-  defp assert_normalized_bounds(%module{left: {_, _}} = a) do
-    assert_normalized_bounds(a, module.discrete?())
-  end
-
-  # right is bounded and has a point
-  defp assert_normalized_bounds(%module{right: {_, _}} = a) do
-    assert_normalized_bounds(a, module.discrete?())
-  end
-
-  defp assert_normalized_bounds(%module{} = a, true) do
-    left_ok = unbounded_left?(a) or inclusive_left?(a)
-    right_ok = unbounded_right?(a) or not inclusive_right?(a)
-
-    if not (left_ok and right_ok) do
-      raise ArgumentError,
-        message:
-          "non-normalized discrete interval #{module}: #{inspect(a)} " <>
-            "(expected normalized bounds `[)`)"
-    end
-  end
-
-  defp assert_normalized_bounds(_a, _discrete) do
-    nil
+  defp assert_bounds(a, bounds) do
+    raise ArgumentError,
+      message: "expected bounds #{pack_bounds(bounds)} for interval #{inspect(a)}"
   end
 
   ##
