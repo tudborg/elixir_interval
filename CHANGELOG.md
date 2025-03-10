@@ -4,16 +4,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## Unreleased
+## 2.0.0-alpha.1
 
 ### Added
 
 - `exclusive_left?/1` and `exclusive_right?/1`
+- `adjacent?/2` (which just checks for adjacency in both directions)
+- `new/1` now accepts option `empty: boolean()`
+- `union/2` will raise `Interval.IntervalOperationError` when the intervals are disjoint.
 
 ### Fixed
 
 - `contains?/2` bug - issue #29
 - `contains?/2` bug - empty interval was never contained by anything which doesn't align with Postgres.
+
 
 ## [1.0.0] - 2025-03-04
 
