@@ -260,6 +260,86 @@ defmodule Interval.IntervalTest do
     assert Interval.intersection(a, b) === a
   end
 
+  test "compare_bounds/4 on finite points" do
+    a = floati(1.0, 2.0, "[]")
+    assert Interval.compare_bounds(:left, a, :left, a) === :eq
+    assert Interval.compare_bounds(:right, a, :right, a) === :eq
+
+    a = floati(1.0, 2.0, "()")
+    assert Interval.compare_bounds(:left, a, :left, a) === :eq
+    assert Interval.compare_bounds(:right, a, :right, a) === :eq
+
+    a = floati(0.5, 1.5, "[]")
+    b = floati(1.0, 2.0, "()")
+    assert Interval.compare_bounds(:left, a, :left, b) === :lt
+    assert Interval.compare_bounds(:left, a, :right, b) === :lt
+    assert Interval.compare_bounds(:right, a, :right, b) === :lt
+    assert Interval.compare_bounds(:right, a, :left, b) === :gt
+
+    a = floati(1.0, 2.0, "()")
+    b = floati(0.5, 1.5, "[]")
+    assert Interval.compare_bounds(:left, a, :left, b) === :gt
+    assert Interval.compare_bounds(:left, a, :right, b) === :lt
+    assert Interval.compare_bounds(:right, a, :right, b) === :gt
+    assert Interval.compare_bounds(:right, a, :left, b) === :gt
+
+    a = floati(1.0, 2.0, "[]")
+    b = floati(1.0, 2.0, "()")
+    assert Interval.compare_bounds(:left, a, :left, b) === :lt
+    assert Interval.compare_bounds(:right, a, :right, b) === :gt
+    assert Interval.compare_bounds(:left, a, :right, b) === :lt
+    assert Interval.compare_bounds(:right, a, :left, b) === :gt
+
+    a = floati(1.0, 2.0, "()")
+    b = floati(1.0, 2.0, "[]")
+    assert Interval.compare_bounds(:left, a, :left, b) === :gt
+    assert Interval.compare_bounds(:right, a, :right, b) === :lt
+    assert Interval.compare_bounds(:left, a, :right, b) === :lt
+    assert Interval.compare_bounds(:right, a, :left, b) === :gt
+
+    a = floati(1.0, 2.0, "()")
+    b = floati(2.0, 3.0, "[]")
+    assert Interval.compare_bounds(:right, a, :left, b) === :lt
+    assert Interval.compare_bounds(:right, a, :right, b) === :lt
+    assert Interval.compare_bounds(:left, a, :left, b) === :lt
+    assert Interval.compare_bounds(:left, a, :right, b) === :lt
+
+    a = floati(1.0, 2.0, "[]")
+    b = floati(2.0, 3.0, "()")
+    assert Interval.compare_bounds(:right, a, :left, b) === :lt
+    assert Interval.compare_bounds(:right, a, :right, b) === :lt
+    assert Interval.compare_bounds(:left, a, :left, b) === :lt
+    assert Interval.compare_bounds(:left, a, :right, b) === :lt
+
+    a = floati(1.0, 2.0, "[]")
+    b = floati(2.0, 3.0, "[]")
+    assert Interval.compare_bounds(:right, a, :left, b) === :eq
+    assert Interval.compare_bounds(:right, a, :right, b) === :lt
+    assert Interval.compare_bounds(:left, a, :left, b) === :lt
+    assert Interval.compare_bounds(:left, a, :right, b) === :lt
+    #
+    a = floati(1.0, 2.0, "()")
+    b = floati(0.0, 1.0, "[]")
+    assert Interval.compare_bounds(:right, a, :left, b) === :gt
+    assert Interval.compare_bounds(:right, a, :right, b) === :gt
+    assert Interval.compare_bounds(:left, a, :left, b) === :gt
+    assert Interval.compare_bounds(:left, a, :right, b) === :gt
+
+    a = floati(1.0, 2.0, "[]")
+    b = floati(0.0, 1.0, "()")
+    assert Interval.compare_bounds(:right, a, :left, b) === :gt
+    assert Interval.compare_bounds(:right, a, :right, b) === :gt
+    assert Interval.compare_bounds(:left, a, :left, b) === :gt
+    assert Interval.compare_bounds(:left, a, :right, b) === :gt
+
+    a = floati(1.0, 2.0, "[]")
+    b = floati(0.0, 1.0, "[]")
+    assert Interval.compare_bounds(:right, a, :left, b) === :gt
+    assert Interval.compare_bounds(:right, a, :right, b) === :gt
+    assert Interval.compare_bounds(:left, a, :left, b) === :gt
+    assert Interval.compare_bounds(:left, a, :right, b) === :eq
+  end
+
   test "contains_point?/2" do
     refute Interval.contains_point?(inti(1, 2), 0)
     assert Interval.contains_point?(inti(1, 2), 1)

@@ -147,6 +147,7 @@ defmodule Interval do
   however a non-normalized empty struct will still correctly report
   empty via the `empty?/1` function.
   """
+  alias Interval.IntervalOperationError
 
   @typedoc """
   An interval struct, representing all points between
@@ -841,43 +842,22 @@ defmodule Interval do
   @spec contains?(t(), t()) :: boolean()
 
   def contains?(%module{} = a, %module{} = b) do
-    a_empty? = empty?(a)
-    b_empty? = empty?(b)
-
     cond do
       # if a == b then a by definition contains b
       a == b ->
         true
 
       # all ranges contains the empty range
-      b_empty? ->
+      empty?(b) ->
         true
 
       # if a contains no points, and b contains some points, then a cannot contain b
-      a_empty? and not b_empty? ->
+      empty?(a) ->
         false
 
-      # otherwise, we'll have to check points
       true ->
-        contains_left =
-          unbounded_left?(a) or
-            (not unbounded_left?(b) and
-               case module.point_compare(left(a), left(b)) do
-                 :gt -> false
-                 :eq -> inclusive_left?(a) or (exclusive_left?(a) and exclusive_left?(b))
-                 :lt -> true
-               end)
-
-        contains_right =
-          unbounded_right?(a) or
-            (not unbounded_right?(b) and
-               case module.point_compare(right(a), right(b)) do
-                 :gt -> true
-                 :eq -> inclusive_right?(a) or (exclusive_right?(a) and exclusive_right?(b))
-                 :lt -> false
-               end)
-
-        contains_left and contains_right
+        compare_bounds(module, :left, a.left, :left, b.left) in [:lt, :eq] and
+          compare_bounds(module, :right, a.right, :right, b.right) in [:gt, :eq]
     end
   end
 
@@ -1093,9 +1073,67 @@ defmodule Interval do
     end
   end
 
+  @doc false
+  def compare_bounds(a_side, %module{} = a, b_side, %module{} = b) do
+    compare_bounds(module, a_side, Map.fetch!(a, a_side), b_side, Map.fetch!(b, b_side))
+  end
+
   ##
   ## Helpers
   ##
+
+  defp compare_bounds(_module, _, a, _, b) when a == :empty or b == :empty do
+    # deals with empty intervals. This should be checked before calling this function
+    raise IntervalOperationError, message: "cannot compare bounds of empty intervals"
+  end
+
+  defp compare_bounds(_module, a_side, a, b_side, b) when a == :unbounded or b == :unbounded do
+    # deals with unbounded points
+    case {a, b} do
+      {:unbounded, :unbounded} ->
+        # if both are unbounded, then they are equal unless one is left and other is right
+        # in which case we need to return the corresponding :lt / :gt
+        case {a_side, b_side} do
+          {same, same} -> :eq
+          {:left, :right} -> :lt
+          {:right, :left} -> :gt
+        end
+
+      {:unbounded, _} ->
+        # a is unbounded. If it is a left-side then it is always less than b
+        if a_side == :left, do: :lt, else: :gt
+
+      {_, :unbounded} ->
+        # b is unbounded. If it is a left-side then a is always greater than b
+        if b_side == :left, do: :gt, else: :lt
+    end
+  end
+
+  defp compare_bounds(module, a_side, {a_bound, a_point}, b_side, {b_bound, b_point}) do
+    # bound bounds are finite, we can compare a and b points
+    # if result is :eq, we might need to modify it depending on bounds and sides
+    with :eq <- module.point_compare(a_point, b_point) do
+      case {a_bound, b_bound, a_side, b_side} do
+        # both points are inclusive, so the points are indeed :eq
+        {:inclusive, :inclusive, _, _} -> :eq
+        # both are exclusive, so they are equal if they are of the same side
+        # and :lt / :gt if they are of different sides
+        {:exclusive, :exclusive, side, side} -> :eq
+        {:exclusive, :exclusive, :left, :right} -> :gt
+        {:exclusive, :exclusive, :right, :left} -> :lt
+        # if a is inclusive:
+        {:inclusive, :exclusive, :left, :left} -> :lt
+        {:inclusive, :exclusive, :right, :right} -> :gt
+        {:inclusive, :exclusive, :left, :right} -> :gt
+        {:inclusive, :exclusive, :right, :left} -> :lt
+        # if b is inclusive:
+        {:exclusive, :inclusive, :left, :left} -> :gt
+        {:exclusive, :inclusive, :right, :right} -> :lt
+        {:exclusive, :inclusive, :left, :right} -> :gt
+        {:exclusive, :inclusive, :right, :left} -> :lt
+      end
+    end
+  end
 
   defp from_endpoints(module, left, right) do
     left_bound =
