@@ -50,4 +50,23 @@ defmodule Interval.RegressionTest do
              right: {:exclusive, Decimal.new("1")}
            }
   end
+
+  test "partition/2 regression 2025-03-11" do
+    a = %IntegerInterval{left: {:inclusive, 2}, right: :unbounded}
+    b = %IntegerInterval{left: {:inclusive, -1}, right: :unbounded}
+    assert [] = Interval.partition(a, b)
+
+    a = %IntegerInterval{left: :unbounded, right: :unbounded}
+    b = %IntegerInterval{left: :unbounded, right: :unbounded}
+
+    assert [
+             %IntegerInterval{left: :empty, right: :empty},
+             %IntegerInterval{left: :unbounded, right: :unbounded},
+             %IntegerInterval{left: :empty, right: :empty}
+           ] = Interval.partition(a, b)
+
+    a = %Interval.IntegerInterval{left: {:inclusive, 1}, right: :unbounded}
+    b = %Interval.IntegerInterval{left: {:inclusive, -2}, right: :unbounded}
+    assert Interval.partition(a, b) == []
+  end
 end

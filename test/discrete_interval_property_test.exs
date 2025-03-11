@@ -208,4 +208,33 @@ defmodule DiscreteIntervalPropertyTest do
       end
     end
   end
+
+  property "partition/2", %{impl: impl} do
+    check all(
+            a <- Helper.interval(impl),
+            b <- Helper.interval(impl)
+          ) do
+      if Interval.contains?(a, b) and not Interval.empty?(b) do
+        [p1, p2, p3] = Interval.partition(a, b)
+        # the middle partition is b (when b is an interval)
+        assert p2 == b
+        # a contains p1,p2,p3 (since we sliced up a in 3 parts)
+        assert Interval.contains?(a, p1)
+        assert Interval.contains?(a, p3)
+        # the union of p1,p2,3 is a
+        a_prime = p1 |> Interval.union(p2) |> Interval.union(p3)
+        assert a_prime == a
+
+        if Interval.unbounded_left?(b) do
+          assert Interval.empty?(p1)
+        end
+
+        if Interval.unbounded_right?(b) do
+          assert Interval.empty?(p3)
+        end
+      else
+        assert [] == Interval.partition(a, b)
+      end
+    end
+  end
 end

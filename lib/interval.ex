@@ -1125,38 +1125,71 @@ defmodule Interval do
   @doc """
   Partition an interval `a` into 3 intervals using  `x`:
 
-  - The interval with all points from `a` < `x`
-  - The interval with just `x`
-  - The interval with  all points from `a` > `x`
+  - The interval with all points from `a` where `a` < `x`
+  - The interval with `x`
+  - The interval with all points from `a` where `a` > `x`
 
   If `x` is not in `a` this function returns an empty list.
 
+  Note: Since 2.0.0, `x` can be a point _or_ an interval.
+  When `x` is a point, the middle interval will be an interval such that `[x,x]`.
+
+  If there are no points in a to the left of `x`, an empty interval is returned for the left side.
+  The same of course applies to the right side of `x`.
+
   ## Examples
 
-      iex> partition(new(module: Interval.IntegerInterval, left: 1, right: 5, bounds: "[]"), 3)
+      iex> partition(Interval.IntegerInterval.new(1, 5, "[]"), 3)
       [
-        new(module: Interval.IntegerInterval, left: 1, right: 3, bounds: "[)"),
-        new(module: Interval.IntegerInterval, left: 3, right: 3, bounds: "[]"),
-        new(module: Interval.IntegerInterval, left: 3, right: 5, bounds: "(]")
+        Interval.IntegerInterval.new(1, 3, "[)"),
+        Interval.IntegerInterval.new(3, 3, "[]"),
+        Interval.IntegerInterval.new(3, 5, "(]")
       ]
 
-      iex> partition(new(module: Interval.IntegerInterval, left: 1, right: 5), -10)
+      iex> partition(Interval.IntegerInterval.new(1, 5), -10)
       []
+
+      iex> partition(Interval.IntegerInterval.new(1, 6), Interval.IntegerInterval.new(3, 4))
+      [
+        Interval.IntegerInterval.new(1, 3, "[)"),
+        Interval.IntegerInterval.new(3, 4, "[)"),
+        Interval.IntegerInterval.new(4, 6, "[)")
+      ]
+
+      iex> partition(Interval.FloatInterval.new(1.0, 6.0), Interval.FloatInterval.new(1.0, 3.0, "[]"))
+      [
+        Interval.FloatInterval.new(1.0, 1.0, "[)"),
+        Interval.FloatInterval.new(1.0, 3.0, "[]"),
+        Interval.FloatInterval.new(3.0, 6.0, "()")
+      ]
   """
   @doc since: "0.1.4"
-  @spec partition(t(), point()) :: [t()] | []
-  def partition(%module{} = a, x) do
-    case contains_point?(a, x) do
-      false ->
-        []
+  @spec partition(t(), point() | t()) :: [t()] | []
+  def partition(%module{} = a, %module{} = x) do
+    if contains?(a, x) and not empty?(x) do
+      # x might be unbounded, in which case the left/right side of x will be the empty interval.
+      left_of =
+        if unbounded_left?(x) do
+          new_empty(module)
+        else
+          from_endpoints(module, a.left, inverted_bound(x.left))
+        end
 
-      true ->
-        [
-          from_endpoints(module, a.left, {:exclusive, x}),
-          from_endpoints(module, {:inclusive, x}, {:inclusive, x}),
-          from_endpoints(module, {:exclusive, x}, a.right)
-        ]
+      right_of =
+        if unbounded_right?(x) do
+          new_empty(module)
+        else
+          from_endpoints(module, inverted_bound(x.right), a.right)
+        end
+
+      [left_of, x, right_of]
+    else
+      []
     end
+  end
+
+  def partition(%module{} = a, x) do
+    partition(a, new(module: module, left: x, right: x, bounds: "[]"))
   end
 
   @doc """

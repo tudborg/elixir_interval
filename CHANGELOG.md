@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## 2.0.0-alpha.2
 
+### Added
+
+- `partition/2` now also accepts an interval as it's second argument.
+
 ### Fixed
 
 - `adjacent?/2` is now exposed on the interval module via `defdelegate` in the using macro.
