@@ -1362,8 +1362,6 @@ defmodule Interval do
       message: "expected bounds #{pack_bounds(bounds)} for interval #{inspect(a)}"
   end
 
-  defp point_step(_module, point, 0), do: point
-
   defp point_step(module, point, step) do
     case module.point_step(point, step) do
       nil ->

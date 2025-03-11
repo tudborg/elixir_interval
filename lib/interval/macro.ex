@@ -43,9 +43,19 @@ defmodule Interval.Macro do
 
       # default implementation for point_step/2
       # continuous intervals do not support a step function, and will not need to implement this.
-      @spec point_step(point_type(), integer()) :: nil
-      def point_step(a, _n),
-        do: raise(Interval.IntervalOperationError, "point_step not implemented for #{__MODULE__}")
+      def point_step(a, _n) do
+        # we apply this hack to avoid dialyzer warn about always raising an error
+        # which is also what gen_server.ex does in it's default handle_call
+        # https://github.com/elixir-lang/elixir/blob/d33e934021cefda220da4b1720e59e996a03aa52/lib/elixir/lib/gen_server.ex#L799-L802
+        case :erlang.phash2(1, 1) do
+          0 ->
+            raise Interval.IntervalOperationError,
+              message: "point_step not implemented for #{__MODULE__}"
+
+          _ ->
+            nil
+        end
+      end
 
       defoverridable point_step: 2
 
