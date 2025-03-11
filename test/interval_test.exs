@@ -489,7 +489,7 @@ defmodule Interval.IntervalTest do
     assert Interval.contains?(floati(1.0, 2.0, "[]"), floati(1.0, 2.0, "()"))
   end
 
-  test "partition/2" do
+  test "partition/2 around a point" do
     assert Interval.partition(inti(1, 4), 2) === [inti(1, 2), inti(2), inti(3)]
     assert Interval.partition(inti(1, 4), 1) === [inti(0, 0), inti(1, 2), inti(2, 4)]
     assert Interval.partition(inti(1, 4), 3) === [inti(1, 3), inti(3), inti(0, 0)]
@@ -507,16 +507,47 @@ defmodule Interval.IntervalTest do
              floati(2.0, 2.0, "[]"),
              floati(2.0, nil, "()")
            ]
+
+    assert Interval.partition(inti(1, 4), 4) === []
+  end
+
+  test "partition/2 around an interval" do
+    a = inti(1, 4)
+    b = inti(2, 2, "[]")
+    assert Interval.partition(a, b) === [inti(1, 2), inti(2, 2, "[]"), inti(3)]
+
+    a = inti(1, 4)
+    b = inti(nil, nil)
+    assert Interval.partition(a, b) === []
+
+    a = inti(nil, 5)
+    b = inti(2, 3, "[]")
+    assert Interval.partition(a, b) === [inti(nil, 2), inti(2, 3, "[]"), inti(3, 5, "()")]
+
+    a = inti(1, nil)
+    b = inti(2, 3, "[]")
+    assert Interval.partition(a, b) === [inti(1, 2, "[)"), inti(2, 3, "[]"), inti(3, nil, "()")]
+
+    a = inti(nil, nil)
+    b = inti(1, 2)
+    assert Interval.partition(a, b) === [inti(nil, 1), inti(1, 2), inti(2, nil)]
+
+    a = inti(nil, nil)
+    b = inti(nil, nil)
+    assert Interval.partition(a, b) === [inti(:empty), inti(nil, nil), inti(:empty)]
+
+    a = inti(nil, nil)
+    b = inti(nil, 2)
+    assert Interval.partition(a, b) === [inti(:empty), inti(nil, 2), inti(2, nil)]
+
+    a = inti(nil, nil)
+    b = inti(2, nil)
+    assert Interval.partition(a, b) === [inti(nil, 2), inti(2, nil), inti(:empty)]
   end
 
   test "partition/2's result unioned together is it's input interval" do
     a = inti(1, 4)
-
-    b =
-      a
-      |> Interval.partition(2)
-      |> Enum.reduce(&Interval.union/2)
-
+    b = a |> Interval.partition(2) |> Enum.reduce(&Interval.union/2)
     assert a === b
   end
 
