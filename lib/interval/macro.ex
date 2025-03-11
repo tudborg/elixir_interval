@@ -61,6 +61,7 @@ defmodule Interval.Macro do
       defdelegate strictly_right_of?(a, b), to: Interval
       defdelegate adjacent_left_of?(a, b), to: Interval
       defdelegate adjacent_right_of?(a, b), to: Interval
+      defdelegate adjacent?(a, b), to: Interval
       defdelegate overlaps?(a, b), to: Interval
       defdelegate contains?(a, b), to: Interval
       defdelegate contains_point?(a, x), to: Interval
