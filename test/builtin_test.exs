@@ -29,6 +29,10 @@ defmodule Interval.BuiltinTest do
       assert :error === IntegerInterval.point_parse("2.0")
       assert :error === IntegerInterval.point_parse("potato")
     end
+
+    test "to_string/1" do
+      assert "[1,2)" === IntegerInterval.parse("[1,2)") |> unwrap!() |> to_string()
+    end
   end
 
   describe "Date" do
@@ -55,6 +59,11 @@ defmodule Interval.BuiltinTest do
       assert {:ok, ~D[2022-01-01]} === DateInterval.point_parse("2022-01-01")
       assert :error === DateInterval.point_parse("2022-01-01T00:00:00Z")
     end
+
+    test "to_string/1" do
+      assert "[2022-01-01,2022-01-02)" ===
+               DateInterval.parse("[2022-01-01,2022-01-02)") |> unwrap!() |> to_string()
+    end
   end
 
   describe "Float" do
@@ -79,6 +88,10 @@ defmodule Interval.BuiltinTest do
       assert {:ok, 2.0} === FloatInterval.point_parse("2.0")
       assert :error === FloatInterval.point_parse("2.0.0")
       assert :error === FloatInterval.point_parse("potato")
+    end
+
+    test "to_string/1" do
+      assert "[1.0,2.0]" === FloatInterval.parse("[1.0,2.0]") |> unwrap!() |> to_string()
     end
   end
 
@@ -117,6 +130,13 @@ defmodule Interval.BuiltinTest do
 
       assert :error === DateTimeInterval.point_parse("2022-01-01")
     end
+
+    test "to_string/1" do
+      assert "[2022-01-01T00:00:00Z,2022-01-01T00:00:01Z)" ===
+               DateTimeInterval.parse("[2022-01-01T00:00:00Z,2022-01-01T00:00:01Z)")
+               |> unwrap!()
+               |> to_string()
+    end
   end
 
   describe "NaiveDateTime" do
@@ -152,6 +172,13 @@ defmodule Interval.BuiltinTest do
                NaiveDateTimeInterval.point_parse("2022-01-01T00:00:00")
 
       assert :error === NaiveDateTimeInterval.point_parse("2022-01-01")
+    end
+
+    test "to_string/1" do
+      assert "[2022-01-01T00:00:00,2022-01-01T00:00:01)" ===
+               NaiveDateTimeInterval.parse("[2022-01-01T00:00:00,2022-01-01T00:00:01)")
+               |> unwrap!()
+               |> to_string()
     end
   end
 
@@ -189,5 +216,11 @@ defmodule Interval.BuiltinTest do
       assert :error === DecimalInterval.point_parse("1.0.0")
       assert :error === DecimalInterval.point_parse("potato")
     end
+
+    test "to_string/1" do
+      assert "[1,2]" === DecimalInterval.parse("[1,2]") |> unwrap!() |> to_string()
+    end
   end
+
+  defp unwrap!({:ok, value}), do: value
 end
