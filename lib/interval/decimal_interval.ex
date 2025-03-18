@@ -18,5 +18,21 @@ if Application.get_env(:interval, Interval.DecimalInterval, true) and Code.ensur
     def point_compare(a, b) when is_struct(a, Decimal) and is_struct(b, Decimal) do
       Decimal.compare(a, b)
     end
+
+    @impl true
+    @spec point_format(Decimal.t()) :: String.t()
+    def point_format(point) do
+      Decimal.to_string(point)
+    end
+
+    @impl true
+    @spec point_parse(String.t()) :: {:ok, Decimal.t()} | :error
+    def point_parse(str) do
+      case Decimal.parse(str) do
+        {num, ""} -> {:ok, num}
+        {_num, _} -> :error
+        :error -> :error
+      end
+    end
   end
 end

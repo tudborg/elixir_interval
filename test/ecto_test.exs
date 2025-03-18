@@ -139,6 +139,10 @@ defmodule Interval.Support.EctoTypeTest do
     assert interval.right == {:inclusive, 2.0}
   end
 
+  test "EctoType.supported?/0" do
+    assert EctoType.supported?()
+  end
+
   ##
   ## Helpers
   ##

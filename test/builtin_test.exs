@@ -19,6 +19,16 @@ defmodule Interval.BuiltinTest do
     test "point_step/2" do
       assert 4 === IntegerInterval.point_step(2, 2)
     end
+
+    test "point_format/1" do
+      assert "2" === IntegerInterval.point_format(2)
+    end
+
+    test "point_parse/1" do
+      assert {:ok, 2} === IntegerInterval.point_parse("2")
+      assert :error === IntegerInterval.point_parse("2.0")
+      assert :error === IntegerInterval.point_parse("potato")
+    end
   end
 
   describe "Date" do
@@ -36,6 +46,15 @@ defmodule Interval.BuiltinTest do
       assert :lt === DateInterval.point_compare(~D[2022-01-01], ~D[2022-01-02])
       assert :gt === DateInterval.point_compare(~D[2022-01-02], ~D[2022-01-01])
     end
+
+    test "point_format/1" do
+      assert "2022-01-01" === DateInterval.point_format(~D[2022-01-01])
+    end
+
+    test "point_parse/1" do
+      assert {:ok, ~D[2022-01-01]} === DateInterval.point_parse("2022-01-01")
+      assert :error === DateInterval.point_parse("2022-01-01T00:00:00Z")
+    end
   end
 
   describe "Float" do
@@ -50,6 +69,16 @@ defmodule Interval.BuiltinTest do
       assert {:ok, +0.0} === FloatInterval.point_normalize(0.0)
       assert {:ok, +0.0} === FloatInterval.point_normalize(-0.0)
       assert :error === FloatInterval.point_normalize(~D[2023-01-01])
+    end
+
+    test "point_format/1" do
+      assert "2.0" === FloatInterval.point_format(2.0)
+    end
+
+    test "point_parse/1" do
+      assert {:ok, 2.0} === FloatInterval.point_parse("2.0")
+      assert :error === FloatInterval.point_parse("2.0.0")
+      assert :error === FloatInterval.point_parse("potato")
     end
   end
 
@@ -77,6 +106,17 @@ defmodule Interval.BuiltinTest do
       assert :eq === DateTimeInterval.point_compare(a, a)
       assert :gt === DateTimeInterval.point_compare(b, a)
     end
+
+    test "point_format/1" do
+      assert "2022-01-01T00:00:00Z" === DateTimeInterval.point_format(~U[2022-01-01 00:00:00Z])
+    end
+
+    test "point_parse/1" do
+      assert {:ok, ~U[2022-01-01 00:00:00Z]} ===
+               DateTimeInterval.point_parse("2022-01-01T00:00:00Z")
+
+      assert :error === DateTimeInterval.point_parse("2022-01-01")
+    end
   end
 
   describe "NaiveDateTime" do
@@ -102,6 +142,17 @@ defmodule Interval.BuiltinTest do
       assert :eq === NaiveDateTimeInterval.point_compare(a, a)
       assert :gt === NaiveDateTimeInterval.point_compare(b, a)
     end
+
+    test "point_format/1" do
+      assert "2022-01-01T00:00:00" === NaiveDateTimeInterval.point_format(~N[2022-01-01 00:00:00])
+    end
+
+    test "point_parse/1" do
+      assert {:ok, ~N[2022-01-01 00:00:00]} ===
+               NaiveDateTimeInterval.point_parse("2022-01-01T00:00:00")
+
+      assert :error === NaiveDateTimeInterval.point_parse("2022-01-01")
+    end
   end
 
   describe "Decimal" do
@@ -126,6 +177,17 @@ defmodule Interval.BuiltinTest do
       assert :lt === DecimalInterval.point_compare(Decimal.new(1), Decimal.new(2))
       assert :eq === DecimalInterval.point_compare(Decimal.new(2), Decimal.new(2))
       assert :gt === DecimalInterval.point_compare(Decimal.new(2), Decimal.new(1))
+    end
+
+    test "point_format/1" do
+      assert "1" === DecimalInterval.point_format(Decimal.new(1))
+    end
+
+    test "point_parse/1" do
+      assert {:ok, Decimal.new(1)} === DecimalInterval.point_parse("1")
+      assert {:ok, Decimal.new("1.0")} === DecimalInterval.point_parse("1.0")
+      assert :error === DecimalInterval.point_parse("1.0.0")
+      assert :error === DecimalInterval.point_parse("potato")
     end
   end
 end

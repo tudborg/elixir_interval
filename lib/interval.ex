@@ -1205,9 +1205,107 @@ defmodule Interval do
     compare_bounds(module, a_side, Map.fetch!(a, a_side), b_side, Map.fetch!(b, b_side))
   end
 
+  @doc """
+  Format the interval as a string
+  """
+  @spec format(t()) :: String.t()
+  def format(%module{} = a) do
+    if empty?(a) do
+      "empty"
+    else
+      pfmt =
+        case function_exported?(module, :point_format, 1) do
+          true -> &module.point_format/1
+          false -> &to_string/1
+        end
+
+      left =
+        case a.left do
+          :unbounded -> ""
+          {:inclusive, point} -> "[#{pfmt.(point)}"
+          {:exclusive, point} -> "(#{pfmt.(point)}"
+        end
+
+      right =
+        case a.right do
+          :unbounded -> ""
+          {:inclusive, point} -> "#{pfmt.(point)}]"
+          {:exclusive, point} -> "#{pfmt.(point)})"
+        end
+
+      "#{left},#{right}"
+    end
+  end
+
+  @doc """
+  Parse a string into an interval.
+  """
+  @spec parse(String.t(), module()) :: {:ok, t()} | {:error, reason :: any()}
+  def parse(string, module) do
+    case string do
+      "empty" ->
+        {:ok, new_empty(module)}
+
+      string ->
+        case String.split(string, ",", parts: 2) do
+          [_] ->
+            {:error, :missing_comma}
+
+          [left, right] ->
+            with {:ok, left} <- parse_left(left, module),
+                 {:ok, right} <- parse_right(right, module) do
+              {:ok, from_endpoints(module, left, right)}
+            end
+        end
+    end
+  end
+
+  @doc """
+  Parse a string into an interval, raises `Interval.IntervalParseError` if parsing fails.
+  """
+  @spec parse!(String.t(), module()) :: t()
+  def parse!(string, module) do
+    case parse(string, module) do
+      {:ok, interval} ->
+        interval
+
+      {:error, reason} ->
+        raise Interval.IntervalParseError,
+          message:
+            "Failed to parse string into interval: #{inspect(string)} reason=#{inspect(reason)}"
+    end
+  end
+
   ##
   ## Helpers
   ##
+
+  defp parse_left("", _), do: {:ok, :unbounded}
+  defp parse_left("[" <> string, module), do: parse_point(string, module, :inclusive, :left)
+  defp parse_left("(" <> string, module), do: parse_point(string, module, :exclusive, :left)
+  defp parse_left(_, _), do: {:error, {:left, :missing_bound}}
+
+  defp parse_right(string, module) do
+    len = String.length(string)
+
+    case String.slice(string, len - 1, len) do
+      "" -> {:ok, :unbounded}
+      "]" -> parse_point(String.slice(string, 0, len - 1), module, :inclusive, :right)
+      ")" -> parse_point(String.slice(string, 0, len - 1), module, :exclusive, :right)
+      _ -> {:error, {:right, :missing_bound}}
+    end
+  end
+
+  defp parse_point(string, module, boundness, side) do
+    if function_exported?(module, :point_parse, 1) do
+      case module.point_parse(string) do
+        {:ok, value} -> {:ok, {boundness, value}}
+        :error -> {:error, {side, {:invalid_point, string}}}
+      end
+    else
+      {:error, {:not_implemented, {module, :point_parse, 1}}}
+    end
+  end
 
   defp compare_bounds(_module, _, a, _, b) when a == :empty or b == :empty do
     # deals with empty intervals. This should be checked before calling this function

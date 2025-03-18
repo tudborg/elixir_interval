@@ -8,15 +8,11 @@ defmodule Interval.IntervalTest do
   alias DateIntervalInterval
   alias DateTimeIntervalInterval
 
-  defp inti(:empty), do: inti(:empty, :empty)
-  defp inti(p), do: inti(p, p, "[]")
-  defp inti(l, r), do: inti(l, r, nil)
-  defp inti(l, r, bounds), do: IntegerInterval.new(l, r, bounds)
+  def inti(p), do: inti(p, p, "[]")
+  def inti(left, right, bounds \\ "[)"), do: IntegerInterval.new(left, right, bounds)
 
-  defp floati(:empty), do: floati(:empty, :empty)
-  defp floati(p), do: floati(p, p, "[]")
-  defp floati(l, r), do: floati(l, r, nil)
-  defp floati(l, r, bounds), do: FloatInterval.new(l, r, bounds)
+  def floati(p), do: floati(p, p, "[]")
+  def floati(left, right, bounds \\ "[)"), do: FloatInterval.new(left, right, bounds)
 
   test "new/1" do
     # some normal construction

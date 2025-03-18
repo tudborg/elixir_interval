@@ -14,6 +14,12 @@ defmodule ContinuousIntervalPropertyTest do
     Map.put_new(ctx, :impl, Interval.FloatInterval)
   end
 
+  property "format/1 -> parse/2 always results in same interval", %{impl: impl} do
+    check all(a <- Helper.interval(impl)) do
+      assert {:ok, a} === a |> Interval.format() |> Interval.parse(impl)
+    end
+  end
+
   property "overlaps?/2 is commutative", %{impl: impl} do
     check all(
             a <- Helper.interval(impl),

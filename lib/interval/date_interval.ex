@@ -20,5 +20,20 @@ if Application.get_env(:interval, Interval.DateInterval, true) do
     @impl true
     @spec point_step(Date.t(), integer()) :: Date.t()
     def point_step(%Date{} = date, n) when is_integer(n), do: Date.add(date, n)
+
+    @impl true
+    @spec point_format(Date.t()) :: String.t()
+    def point_format(point) do
+      Date.to_iso8601(point)
+    end
+
+    @impl true
+    @spec point_parse(String.t()) :: {:ok, Date.t()} | :error
+    def point_parse(str) do
+      case Date.from_iso8601(str) do
+        {:ok, dt} -> {:ok, dt}
+        {:error, _} -> :error
+      end
+    end
   end
 end

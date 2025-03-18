@@ -46,12 +46,12 @@ defmodule Interval.Behaviour do
   @doc """
   Normalize a point to a canonical form. Returns :error if the point is invalid.
   """
-  @callback point_normalize(Interval.point()) :: :error | {:ok, Interval.point()}
+  @callback point_normalize(point :: Interval.point()) :: :error | {:ok, Interval.point()}
 
   @doc """
   Compare two points, returning if `a == b`, `a > b` or `a < b`.
   """
-  @callback point_compare(Interval.point(), Interval.point()) :: :eq | :gt | :lt
+  @callback point_compare(a :: Interval.point(), b :: Interval.point()) :: :eq | :gt | :lt
 
   @doc """
   Step a discrete point `n` steps.
@@ -59,5 +59,17 @@ defmodule Interval.Behaviour do
   If `n` is negative, the point is stepped backwards.
   For integers this is simply addition (`point + n`)
   """
-  @callback point_step(Interval.point(), n :: integer()) :: Interval.point()
+  @callback point_step(point :: Interval.point(), n :: integer()) :: Interval.point()
+
+  @doc """
+  Return a string representation of a point for use in formatting intervals.
+  """
+  @callback point_format(point :: Interval.point()) :: String.t()
+
+  @doc """
+  Parse a string representation of a point into a point, for use in parsing intervals.
+  """
+  @callback point_parse(string :: String.t()) :: {:ok, Interval.point()} | :error
+
+  @optional_callbacks point_format: 1, point_parse: 1
 end
