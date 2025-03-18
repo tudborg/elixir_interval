@@ -8,6 +8,10 @@ if Application.get_env(:interval, Interval.DecimalInterval, true) and Code.ensur
       use Interval.Support.EctoType, ecto_type: :numrange
     end
 
+    if Interval.Support.Jason.supported?() do
+      use Interval.Support.Jason
+    end
+
     @impl true
     @spec point_normalize(any()) :: {:ok, Decimal.t()} | :error
     def point_normalize(a) when is_struct(a, Decimal), do: {:ok, a}

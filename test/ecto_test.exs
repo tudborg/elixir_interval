@@ -10,10 +10,10 @@ defmodule Interval.Support.EctoTypeTest do
   @module Interval.IntegerInterval
 
   test "Interval.IntegerInterval implements Ecto.Type behaviour" do
-    assert Kernel.function_exported?(@module, :type, 0)
-    assert Kernel.function_exported?(@module, :cast, 1)
-    assert Kernel.function_exported?(@module, :load, 1)
-    assert Kernel.function_exported?(@module, :dump, 1)
+    assert function_exported?(@module, :type, 0)
+    assert function_exported?(@module, :cast, 1)
+    assert function_exported?(@module, :load, 1)
+    assert function_exported?(@module, :dump, 1)
   end
 
   test "Interval.IntegerInterval.type/0" do

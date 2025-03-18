@@ -8,6 +8,10 @@ if Application.get_env(:interval, Interval.NaiveDateTimeInterval, true) do
       use Interval.Support.EctoType, ecto_type: :tstzrange
     end
 
+    if Interval.Support.Jason.supported?() do
+      use Interval.Support.Jason
+    end
+
     @impl true
     @spec point_normalize(NaiveDateTime.t()) :: {:ok, NaiveDateTime.t()} | :error
     def point_normalize(a) when is_struct(a, NaiveDateTime), do: {:ok, a}

@@ -33,6 +33,10 @@ defmodule Interval.BuiltinTest do
     test "to_string/1" do
       assert "[1,2)" === IntegerInterval.parse("[1,2)") |> unwrap!() |> to_string()
     end
+
+    test "Jason.Encoder protocol" do
+      assert ~S{"[1,2)"} === IntegerInterval.new(1, 2) |> Jason.encode!()
+    end
   end
 
   describe "Date" do
@@ -64,6 +68,11 @@ defmodule Interval.BuiltinTest do
       assert "[2022-01-01,2022-01-02)" ===
                DateInterval.parse("[2022-01-01,2022-01-02)") |> unwrap!() |> to_string()
     end
+
+    test "Jason.Encoder protocol" do
+      assert ~S{"[2022-01-01,2023-01-01)"} ===
+               DateInterval.new(~D[2022-01-01], ~D[2023-01-01]) |> Jason.encode!()
+    end
   end
 
   describe "Float" do
@@ -92,6 +101,10 @@ defmodule Interval.BuiltinTest do
 
     test "to_string/1" do
       assert "[1.0,2.0]" === FloatInterval.parse("[1.0,2.0]") |> unwrap!() |> to_string()
+    end
+
+    test "Jason.Encoder protocol" do
+      assert ~S{"[1.0,2.0)"} === FloatInterval.new(1.0, 2.0) |> Jason.encode!()
     end
   end
 
@@ -137,6 +150,12 @@ defmodule Interval.BuiltinTest do
                |> unwrap!()
                |> to_string()
     end
+
+    test "Jason.Encoder protocol" do
+      assert ~S{"[2022-01-01T00:00:00Z,2023-01-01T00:00:00Z)"} ===
+               DateTimeInterval.new(~U[2022-01-01 00:00:00Z], ~U[2023-01-01 00:00:00Z])
+               |> Jason.encode!()
+    end
   end
 
   describe "NaiveDateTime" do
@@ -180,6 +199,12 @@ defmodule Interval.BuiltinTest do
                |> unwrap!()
                |> to_string()
     end
+
+    test "Jason.Encoder protocol" do
+      assert ~S{"[2022-01-01T00:00:00,2023-01-01T00:00:00)"} ===
+               NaiveDateTimeInterval.new(~N[2022-01-01 00:00:00], ~N[2023-01-01 00:00:00])
+               |> Jason.encode!()
+    end
   end
 
   describe "Decimal" do
@@ -219,6 +244,11 @@ defmodule Interval.BuiltinTest do
 
     test "to_string/1" do
       assert "[1,2]" === DecimalInterval.parse("[1,2]") |> unwrap!() |> to_string()
+    end
+
+    test "Jason.Encoder protocol" do
+      assert ~S{"[1,2)"} ===
+               DecimalInterval.new(Decimal.new(1), Decimal.new(2)) |> Jason.encode!()
     end
   end
 

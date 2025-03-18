@@ -91,6 +91,7 @@ defmodule Interval.MixProject do
   defp deps do
     [
       {:ecto, ">= 3.4.3 and < 4.0.0", optional: true},
+      {:jason, ">= 1.0.0 and < 2.0.0", optional: true},
       {:postgrex, "~> 0.14", optional: true},
       {:decimal, "~> 2.0", optional: true},
       {:stream_data, "~> 1.0", only: [:test, :dev], runtime: false},

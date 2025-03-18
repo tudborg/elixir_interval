@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interval callback `point_format/1` for customizing how a point is formattet.
 - Interval callback `point_parse/1` to parse a string into a point.
 - `String.Chars` protocol implemented for all builtin types, which delegates to `format/1`
+- `Jason.Encoder` protocl implemented for all builtin types, which delegates to `format/1`
 
 ## 2.0.0
 

@@ -8,6 +8,10 @@ if Application.get_env(:interval, Interval.FloatInterval, true) do
       use Interval.Support.EctoType, ecto_type: :floatrange
     end
 
+    if Interval.Support.Jason.supported?() do
+      use Interval.Support.Jason
+    end
+
     @impl true
     @spec point_normalize(any()) :: {:ok, float()} | :error
     def point_normalize(-0.0), do: {:ok, +0.0}
