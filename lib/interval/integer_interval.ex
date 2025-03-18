@@ -8,6 +8,10 @@ if Application.get_env(:interval, Interval.IntegerInterval, true) do
       use Interval.Support.EctoType, ecto_type: :int4range
     end
 
+    if Interval.Support.Jason.supported?() do
+      use Interval.Support.Jason
+    end
+
     @impl true
     @spec point_normalize(any()) :: {:ok, integer()} | :error
     def point_normalize(a) when is_integer(a), do: {:ok, a}

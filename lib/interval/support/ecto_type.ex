@@ -4,7 +4,7 @@ defmodule Interval.Support.EctoType do
 
   ## Example
 
-      use Interval.Support.EctoTypeType, ecto_type: :numrange
+      use Interval.Support.EctoType, ecto_type: :numrange
   """
 
   @supported? Code.ensure_loaded?(Postgrex) and Code.ensure_loaded?(Ecto)
