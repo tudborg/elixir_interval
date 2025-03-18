@@ -33,6 +33,11 @@ defmodule Interval.Support.EctoTypeTest do
     # When we cast something that is already an Interval:
     interval = @module.new(left: 1, right: 2)
     assert @module.cast(interval) == {:ok, interval}
+
+    # cast from string
+    assert @module.cast("[1,2)") === {:ok, @module.new(1, 2, "[)")}
+    assert @module.cast("empty") === {:ok, @module.new(:empty, :empty)}
+    assert @module.cast("potato") === :error
   end
 
   test "Interval.IntegerInterval.load/1" do
@@ -56,6 +61,9 @@ defmodule Interval.Support.EctoTypeTest do
 
     # When DB returns NULL:
     assert @module.load(nil) == {:ok, nil}
+
+    # load from DB as string
+    assert @module.load("[1,2)") === {:ok, @module.new(1, 2, "[)")}
   end
 
   test "Interval.IntegerInterval.dump/1" do

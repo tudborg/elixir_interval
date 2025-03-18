@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## 2.0.1-dev
+## 2.0.1-alpha.1
 
 ### Added
 
@@ -15,6 +15,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Interval callback `point_parse/1` to parse a string into a point.
 - `String.Chars` protocol implemented for all builtin types, which delegates to `format/1`
 - `Jason.Encoder` protocl implemented for all builtin types, which delegates to `format/1`
+
+
+### Changed
+
+- `Interval.Support.EctoType` has been rewritten to support loading and casting from strings.
+- `Interval.Support.EctoType` no longer depends on `Postgrex`, since backing type could be `string`
 
 ## 2.0.0
 
