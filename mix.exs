@@ -1,7 +1,7 @@
 defmodule Interval.MixProject do
   use Mix.Project
 
-  @version "2.0.0"
+  @version "2.0.1-alpha.1"
   @source_url "https://github.com/tbug/elixir_interval"
 
   def project do
