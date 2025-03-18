@@ -4,6 +4,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## 2.0.1-dev
+
+### Added
+
+- `Interval.format/1` formats an interval as a string.
+- `Interval.parse/2` parses a string into an interval.
+- Interval module functions `format/1` and `parse/1` that delegates to the above.
+- Interval callback `point_format/1` for customizing how a point is formattet.
+- Interval callback `point_parse/1` to parse a string into a point.
+
 ## 2.0.0
 
 No changes from `alpha.2`

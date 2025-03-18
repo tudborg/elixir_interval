@@ -20,5 +20,20 @@ if Application.get_env(:interval, Interval.NaiveDateTimeInterval, true) do
     @impl true
     @spec point_step(NaiveDateTime.t(), any()) :: nil
     def point_step(%NaiveDateTime{}, _n), do: nil
+
+    @impl true
+    @spec point_format(NaiveDateTime.t()) :: String.t()
+    def point_format(point) do
+      NaiveDateTime.to_iso8601(point)
+    end
+
+    @impl true
+    @spec point_parse(String.t()) :: {:ok, NaiveDateTime.t()} | :error
+    def point_parse(str) do
+      case NaiveDateTime.from_iso8601(str) do
+        {:ok, dt} -> {:ok, dt}
+        {:error, _} -> :error
+      end
+    end
   end
 end

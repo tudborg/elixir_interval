@@ -79,6 +79,9 @@ defmodule Interval.Macro do
       defdelegate intersection(a, b), to: Interval
       defdelegate partition(a, x), to: Interval
       defdelegate difference(a, b), to: Interval
+
+      defdelegate format(a), to: Interval
+      def parse(str), do: Interval.parse(str, __MODULE__)
     end
   end
 end
