@@ -68,8 +68,7 @@ defmodule IntervalFormatParseTest do
   end
 
   defmodule MyInterval do
-    use Interval, type: Integer
-
+    use Interval, type: Integer, to_string: false
     defdelegate point_compare(a, b), to: IntegerInterval
     defdelegate point_normalize(a), to: IntegerInterval
   end

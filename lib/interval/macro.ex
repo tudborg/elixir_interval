@@ -6,6 +6,7 @@ defmodule Interval.Macro do
   def define_interval(opts) do
     type = Keyword.fetch!(opts, :type)
     discrete = Keyword.get(opts, :discrete, false)
+    defimpl_string_chars? = Keyword.get(opts, :to_string, true)
 
     quote do
       @moduledoc """
@@ -19,6 +20,7 @@ defmodule Interval.Macro do
 
       @behaviour Interval.Behaviour
       @discrete unquote(discrete)
+      @defimpl_string_chars? unquote(defimpl_string_chars?)
 
       @typedoc "An interval of point type `#{inspect(unquote(type))}`"
       @type t() :: %__MODULE__{}
@@ -82,6 +84,12 @@ defmodule Interval.Macro do
 
       defdelegate format(a), to: Interval
       def parse(str), do: Interval.parse(str, __MODULE__)
+
+      if @defimpl_string_chars? do
+        defimpl String.Chars do
+          defdelegate to_string(interval), to: Interval, as: :format
+        end
+      end
     end
   end
 end
