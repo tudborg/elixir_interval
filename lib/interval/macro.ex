@@ -24,7 +24,7 @@ defmodule Interval.Macro do
 
       @typedoc "An interval of point type `#{inspect(unquote(type))}`"
       @type t() :: %__MODULE__{}
-      @type point() :: unquote(type)
+      @type point() :: term()
 
       defstruct left: nil, right: nil
 
