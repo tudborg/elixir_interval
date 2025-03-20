@@ -24,11 +24,15 @@ defmodule Interval.Macro do
 
       @typedoc "An interval of point type `#{inspect(unquote(type))}`"
       @type t() :: %__MODULE__{}
-      @type point_type() :: unquote(type)
+      @type point() :: unquote(type)
 
       defstruct left: nil, right: nil
 
-      @spec new(left :: point_type(), right :: point_type(), bounds :: Interval.strbounds()) ::
+      @spec new(
+              left :: point() | nil | :unbounded | :empty,
+              right :: point() | nil | :unbounded | :empty,
+              bounds :: Interval.strbounds()
+            ) ::
               t()
       def new(left, right, bounds \\ "[)") do
         new(left: left, right: right, bounds: bounds)

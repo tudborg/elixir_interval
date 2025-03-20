@@ -16,6 +16,20 @@ defmodule Interval.BuiltinTest do
   doctest Interval.IntegerInterval, import: true
 
   describe "Integer" do
+    test "new/3" do
+      assert Interval.new(module: IntegerInterval, left: 1, right: 2) ===
+               IntegerInterval.new(1, 2)
+
+      assert Interval.new(module: IntegerInterval, left: 1, right: 2) ===
+               IntegerInterval.new(1, 2, "[)")
+
+      assert Interval.new(module: IntegerInterval, empty: true) ===
+               IntegerInterval.new(:empty, :empty)
+
+      assert Interval.new(module: IntegerInterval) ===
+               IntegerInterval.new(nil, nil)
+    end
+
     test "point_step/2" do
       assert 4 === IntegerInterval.point_step(2, 2)
     end

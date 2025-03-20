@@ -1,7 +1,7 @@
 defmodule Interval.MixProject do
   use Mix.Project
 
-  @version "2.0.1-alpha.1"
+  @version "2.0.1-alpha.2"
   @source_url "https://github.com/tbug/elixir_interval"
 
   def project do
@@ -82,8 +82,7 @@ defmodule Interval.MixProject do
 
   defp dialyzer do
     [
-      flags: [:error_handling, :underspecs, :unmatched_returns, :no_return],
-      plt_add_apps: [:ecto, :decimal]
+      flags: [:error_handling, :underspecs, :unmatched_returns, :no_return]
     ]
   end
 
@@ -94,7 +93,7 @@ defmodule Interval.MixProject do
       {:jason, ">= 1.0.0 and < 2.0.0", optional: true},
       {:postgrex, "~> 0.14", optional: true},
       {:decimal, "~> 2.0", optional: true},
-      {:stream_data, "~> 1.0", only: [:test, :dev], runtime: false},
+      {:stream_data, "~> 1.0", only: [:test, :dev]},
       {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
       {:dialyxir, "~> 1.2", only: [:dev, :test], runtime: false}

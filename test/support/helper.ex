@@ -25,37 +25,33 @@ defmodule Helper do
       # to avoid producing empty intervals,
       # we check that the bounds and ensure that we cannot produce
       # an interval that would normalize to empty
-      case module.discrete?() do
-        true ->
-          offset =
-            case bounds do
-              # both inclusive, we are OK with offset being 0
-              "[]" -> module.point_step(offset, -1)
-              # if either bound is inclusive,
-              "(]" -> offset
-              # the default of offset `[1,` is OK
-              "[)" -> offset
-              # both exclusive, so offset must be at least 2 to not produce empty
-              "()" -> module.point_step(offset, +1)
-            end
+      if module.discrete?() do
+        offset =
+          case bounds do
+            # both inclusive, we are OK with offset being 0
+            "[]" -> module.point_step(offset, -1)
+            # if either bound is inclusive,
+            "(]" -> offset
+            # the default of offset `[1,` is OK
+            "[)" -> offset
+            # both exclusive, so offset must be at least 2 to not produce empty
+            "()" -> module.point_step(offset, +1)
+          end
 
-          Interval.new(
-            module: module,
-            left: left,
-            right: add_offset(left, offset),
-            bounds: bounds
-          )
-
-        false ->
-          Interval.new(
-            module: module,
-            left: left,
-            right: add_offset(left, offset),
-            bounds: bounds
-          )
+        Interval.new(
+          module: module,
+          left: left,
+          right: add_offset(left, offset),
+          bounds: bounds
+        )
+      else
+        Interval.new(
+          module: module,
+          left: left,
+          right: add_offset(left, offset),
+          bounds: bounds
+        )
       end
-
-      Interval.new(module: module, left: left, right: add_offset(left, offset), bounds: bounds)
     end
   end
 
