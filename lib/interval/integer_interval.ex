@@ -5,7 +5,7 @@ if Application.get_env(:interval, Interval.IntegerInterval, true) do
     use Interval, type: Integer, discrete: true
 
     if Interval.Support.EctoType.supported?() do
-      use Interval.Support.EctoType, ecto_type: :int4range
+      use Interval.Support.EctoType, ecto_type: :int8range
     end
 
     if Interval.Support.Jason.supported?() do

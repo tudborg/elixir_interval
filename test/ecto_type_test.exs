@@ -17,7 +17,7 @@ defmodule Interval.Support.EctoTypeTest do
   end
 
   test "Interval.IntegerInterval.type/0" do
-    assert @module.type() == :int4range
+    assert @module.type() == :int8range
   end
 
   test "Interval.IntegerInterval.cast/1" do
