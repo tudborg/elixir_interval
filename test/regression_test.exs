@@ -69,4 +69,14 @@ defmodule Interval.RegressionTest do
     b = %Interval.IntegerInterval{left: {:inclusive, -2}, right: :unbounded}
     assert Interval.partition(a, b) == []
   end
+
+  test "accept endpoints as left and right arguments to new/1 regression 2025-10-15" do
+    interval = Interval.IntegerInterval.new(left: {:exclusive, 1}, right: {:inclusive, 10})
+    assert interval == %Interval.IntegerInterval{left: {:inclusive, 2}, right: {:exclusive, 11}}
+    # even when they conflict with bounds:
+    interval =
+      Interval.IntegerInterval.new(left: {:exclusive, 1}, right: {:inclusive, 10}, bounds: "()")
+
+    assert interval == %Interval.IntegerInterval{left: {:inclusive, 2}, right: {:exclusive, 11}}
+  end
 end

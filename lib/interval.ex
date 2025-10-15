@@ -251,7 +251,7 @@ defmodule Interval do
     empty = Keyword.get(opts, :empty, false)
     left = with nil <- Keyword.get(opts, :left), do: :unbounded
     right = with nil <- Keyword.get(opts, :right), do: :unbounded
-    bounds = with nil <- Keyword.get(opts, :bounds), do: "[)"
+    bounds = Keyword.get(opts, :bounds)
 
     if empty == true or left == :empty or right == :empty do
       # if we need to create an empty struct, we can short-circuit to an empty:
@@ -268,11 +268,24 @@ defmodule Interval do
   defp normalize_endpoint(module, point, bound) do
     case {point, bound} do
       # point value takes precedence over bound:
-      {:unbounded, _} -> :unbounded
+      {:unbounded, _} ->
+        :unbounded
+
+      {:empty, _} ->
+        :empty
+
+      {{bound, point}, _} when bound in [:inclusive, :exclusive] ->
+        {bound, normalize_point!(module, point)}
+
       # if the point is set, the bound value discribes bound-ness:
-      {_, :unbounded} -> :unbounded
-      {_, :inclusive} -> {:inclusive, normalize_point!(module, point)}
-      {_, :exclusive} -> {:exclusive, normalize_point!(module, point)}
+      {_, :unbounded} ->
+        :unbounded
+
+      {_, :inclusive} ->
+        {:inclusive, normalize_point!(module, point)}
+
+      {_, :exclusive} ->
+        {:exclusive, normalize_point!(module, point)}
     end
   end
 
@@ -1439,6 +1452,9 @@ defmodule Interval do
     "[)" => {:inclusive, :exclusive},
     "(]" => {:exclusive, :inclusive}
   }
+
+  # default bounds when nil is given is "[)"
+  defp unpack_bounds(nil), do: {:inclusive, :exclusive}
 
   for {str, tuple} <- @bounds do
     defp unpack_bounds(unquote(str)), do: unquote(tuple)

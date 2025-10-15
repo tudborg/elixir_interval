@@ -31,10 +31,9 @@ defmodule Interval.Macro do
       @spec new(
               left :: point() | nil | :unbounded | :empty,
               right :: point() | nil | :unbounded | :empty,
-              bounds :: Interval.strbounds()
-            ) ::
-              t()
-      def new(left, right, bounds \\ "[)") do
+              bounds :: Interval.strbounds() | nil
+            ) :: t()
+      def new(left, right, bounds \\ nil) do
         new(left: left, right: right, bounds: bounds)
       end
 
