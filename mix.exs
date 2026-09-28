@@ -13,7 +13,7 @@ defmodule Interval.MixProject do
       Implement intervals over your own custom data.
       """,
       version: @version,
-      elixir: "~> 1.12",
+      elixir: "~> 1.16",
       elixirc_paths: elixirc_paths(Mix.env()),
       start_permanent: Mix.env() == :prod,
       test_coverage: test_coverage(),
