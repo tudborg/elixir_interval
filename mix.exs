@@ -92,7 +92,7 @@ defmodule Interval.MixProject do
       {:ecto, ">= 3.4.3 and < 4.0.0", optional: true},
       {:jason, ">= 1.0.0 and < 2.0.0", optional: true},
       {:postgrex, "~> 0.14", optional: true},
-      {:decimal, "~> 2.0", optional: true},
+      {:decimal, "~> 3.0", optional: true},
       {:stream_data, "~> 1.0", only: [:test, :dev]},
       {:ex_doc, "~> 0.27", only: :dev, runtime: false},
       {:credo, "~> 1.6", only: [:dev, :test], runtime: false},
